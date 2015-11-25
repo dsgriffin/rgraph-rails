@@ -1,4 +1,4 @@
-require "rgraph_js/version"
+require "rgraph-rails/version"
 
 module RgraphRails
   module Rails
