@@ -42,12 +42,11 @@ $(window).load ->
   }).draw()
 ```
 
-And finally the canvas that holds the graph in your `example.html.erb`/`example.html.haml`
+And finally the canvas that holds the graph in your `example.html.haml`/`example.html.erb`
 
-```html
-<canvas id="cvs" width="600" height="100">
+```haml
+%canvas#cvs{:height => "100", :width => "600"}
   [No canvas support]
-</canvas>
 ```
 
 For detailed documentation concerning the types of graphs/charts and all other available options, [please see the official docs](http://www.rgraph.net/docs/charts-index.html).
