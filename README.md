@@ -1,6 +1,6 @@
 # rgraph-rails
 
-[![Build Status](https://travis-ci.org/dsgriffin/rgraph-rails.svg?branch=master)](https://travis-ci.org/dsgriffin/rgraph-rails)
+[![Build Status](https://travis-ci.org/thisisbd/rgraph-rails.svg?branch=master)](https://travis-ci.org/thisisbd/rgraph-rails)
 [![Gem Version](https://badge.fury.io/rb/rgraph-rails.svg)](https://badge.fury.io/rb/rgraph-rails)
 
 Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asset pipeline.
@@ -10,7 +10,7 @@ Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asse
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'rgraph-rails', '>= 1.0.0'
+gem 'rgraph-rails', '~> 1.0'
 ```
 
 And then execute:
@@ -58,13 +58,17 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
+## Deployment
+
+Automatically on tagged release. Reading: https://docs.travis-ci.com/user/deployment/rubygems/
+
 ## Issues
 
-If your query concerns the library itself, see the [official support forum](http://www.rgraph.net/support). If it is about this gem in particular, [raise an issue](https://github.com/dsgriffin/rgraph-rails/issues).
+If your query concerns the library itself, see the [official support forum](http://www.rgraph.net/support). If it is about this gem in particular, [raise an issue](https://github.com/thisisbd/rgraph-rails/issues).
 
 ## Contributing
 
-Bug reports and pull requests are welcome. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](https://github.com/dsgriffin/rgraph-rails/blob/master/CODE_OF_CONDUCT.md) code of conduct.
+Bug reports and pull requests are welcome. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](https://github.com/thisisbd/rgraph-rails/blob/master/CODE_OF_CONDUCT.md) code of conduct.
 
 ## License
 

@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{ The rgraph (http://www.rgraph.net/) interactive chart/graph library with the Rails asset pipeline. }
   spec.description   = %q{ The rgraph (http://www.rgraph.net/) interactive chart/graph library with the Rails asset pipeline. }
-  spec.homepage      = "https://github.com/dsgriffin/rgraph-rails"
+  spec.homepage      = "https://github.com/thisisbd/rgraph-rails"
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
   spec.bindir        = "exe"
