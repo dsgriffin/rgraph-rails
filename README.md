@@ -7,7 +7,7 @@ Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asse
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Include the gem in your application's Gemfile:
 
 ```ruby
 gem 'rgraph-rails', '~> 1.0'
@@ -19,18 +19,18 @@ And then execute:
 
 ## Usage
 
-In your application.js, include the core RGraph file
+In your `application.js`, include the core RGraph file
 
 ```ruby
 //= require RGraph.common.core
 ```
 
-Next, include one or more graph types - depending on which one's you'd like to use. For example:
+Next, include one or more graph types - depending on which one's you'd like to use. For example
 
 ```ruby
 //= require RGraph.hprogress.js
 ```
-Then you'd add the Graphical data to your `example.coffee`/`example.js`:
+Then you'd add the Graphical data to your `example.coffee`/`example.js`
 
 ```coffeescript
 $(window).load ->
@@ -72,5 +72,5 @@ Bug reports and pull requests are welcome. This project is intended to be a safe
 
 ## License
 
-See license.txt
+See `license.txt`
 
