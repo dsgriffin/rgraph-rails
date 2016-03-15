@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -1330,22 +1330,17 @@
                     'ylabels.count': numXLabels,
                     'strict': true
                 });
-    
+
                 this.Set('chart.xmax', this.xscale2.max);
                 var interval = (ca.width - this.gutterLeft - this.gutterRight) / this.xscale2.labels.length;
     
                 for (var i=0,len=this.xscale2.labels.length; i<len; i+=1) {
                 
-                    var num  = ( (prop['chart.xmax'] - prop['chart.xmin']) * ((i+1) / numXLabels)) + (xmin || 0);
-                    var x    = this.gutterLeft + ((i+1) * interval);
-    
-                    if (typeof(prop['chart.xscale.formatter']) == 'function') {
-                        var text = String(prop['chart.xscale.formatter'](this, num));
-
-                    } else {
-    
-                        var text = this.xscale2.labels[i]
-                    }
+                    var num  = ( (prop['chart.xmax'] - prop['chart.xmin']) * ((i+1) / numXLabels)) + (xmin || 0),
+                        x    = this.gutterLeft + ((i+1) * interval),
+                        
+                        // Repeated a few lines down
+                        text = typeof prop['chart.xscale.formatter'] === 'function' ? String(prop['chart.xscale.formatter'](this, num)) : this.xscale2.labels[i];
     
                     RG.text2(this, {
                         'color': color,
@@ -1360,9 +1355,13 @@
                         'tag': 'xscale'
                     });
                 }
-                
+
                 // If the Y axis is on the right hand side - draw the left most X label
                 // ** Always added now **
+                
+                // Repeated a few lines up
+                var text = typeof prop['chart.xscale.formatter'] === 'function' ? String(prop['chart.xscale.formatter'](this, prop['chart.xmin'])) : String(prop['chart.xmin']);
+
                 RG.text2(this, {
                     'color': color,
                     'font':font,
@@ -1372,10 +1371,10 @@
                     'y': y,
                     'valign': 'center',
                     'halign':'center',
-                    'text':String(prop['chart.xmin']),
+                    'text': text,
                     'tag': 'xscale'
                 });
-    
+
             /**
             * Draw X labels
             */

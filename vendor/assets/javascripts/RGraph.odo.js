@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -30,8 +30,6 @@
         * Allow for object config style
         */
         if (   typeof conf === 'object'
-            && typeof conf.min === 'number'
-            && typeof conf.max === 'number'
             && typeof conf.value !== 'undefined'
             && typeof conf.id === 'string') {
 
@@ -60,8 +58,8 @@
         this.canvas.__object__ = this;
         this.type              = 'odo';
         this.isRGraph          = true;
-        this.min               = min;
-        this.max               = max;
+        this.min               = RGraph.stringsToNumbers(min);
+        this.max               = RGraph.stringsToNumbers(max);
         this.value             = RGraph.stringsToNumbers(value);
         this.currentValue      = null;
         this.uid               = RGraph.CreateUID();

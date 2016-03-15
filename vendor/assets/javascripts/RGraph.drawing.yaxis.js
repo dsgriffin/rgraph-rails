@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -652,15 +652,16 @@
                                 gap /= 2;
                             }
     
-                            RG.Text2(this, {'font':font,
-                                                'size':size,
-                                                'x':x - (align == 'right' ? -5 : 5),
-                                                'y':(i * gap) + this.gutterTop,
-                                                'text':labels_specific[i],
-                                                'valign':'center',
-                                                'halign':align == 'right' ? 'left' : 'right',
-                                                'tag': 'scale'
-                                               });
+                            RG.text2(this, {
+                                'font':font,
+                                'size':size,
+                                'x':x - (align == 'right' ? -5 : 5),
+                                'y':(i * gap) + this.gutterTop,
+                                'text':labels_specific[i],
+                                'valign':'center',
+                                'halign':align == 'right' ? 'left' : 'right',
+                                'tag': 'scale'
+                            });
                             
                             /**
                             * Store the max length so that it can be used if necessary to determine
@@ -674,15 +675,16 @@
                             // It's "-2" so that the center label isn't added twice
                             for (var i=(labels_specific.length-2); i>=0; --i) {
     
-                                RG.Text2(this, {'font':font,
-                                                    'size':size,
-                                                    'x':x - (align == 'right' ? -5 : 5),
-                                                    'y':ca.height - this.gutterBottom - (i * gap),
-                                                    'text':labels_specific[i],
-                                                    'valign':'center',
-                                                    'halign':align == 'right' ? 'left' : 'right',
-                                                    'tag': 'scale'
-                                                   });
+                                RG.text2(this, {
+                                    'font':font,
+                                    'size':size,
+                                    'x':x - (align == 'right' ? -5 : 5),
+                                    'y':ca.height - this.gutterBottom - (i * gap),
+                                    'text':labels_specific[i],
+                                    'valign':'center',
+                                    'halign':align == 'right' ? 'left' : 'right',
+                                    'tag': 'scale'
+                                });
                             }
                         }
 
@@ -696,8 +698,8 @@
                                 continue;
                             }
             
-                            var text     = RG.number_format(this, original.toFixed(decimals), units_pre, units_post);
-                            var text     = String(typeof(formatter) == 'function' ? formatter(this, original) : text);
+                            var text = RG.number_format(this, original.toFixed(decimals), units_pre, units_post);
+                            var text = String(typeof(formatter) == 'function' ? formatter(this, original) : text);
 
                             // text_len is used below for positioning the title
                             var text_len = Math.max(text_len, co.measureText(text).width);
@@ -720,15 +722,16 @@
                             /**
                             * Now - draw the labels
                             */
-                            RG.Text2(this, {'font':font,
-                                                'size':size,
-                                                'x':x - (align == 'right' ? -5 : 5),
-                                                'y':y + this.gutterTop,
-                                                'text':text,
-                                                'valign':'center',
-                                                'halign':align == 'right' ? 'left' : 'right',
-                                                'tag': 'scale'
-                                               });
+                            RG.text2(this, {
+                                'font':font,
+                                'size':size,
+                                'x':x - (align == 'right' ? -5 : 5),
+                                'y':y + this.gutterTop,
+                                'text':text,
+                                'valign':'center',
+                                'halign':align == 'right' ? 'left' : 'right',
+                                'tag': 'scale'
+                            });
             
             
             

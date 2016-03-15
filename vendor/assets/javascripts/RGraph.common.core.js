@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -7,8 +7,9 @@
     * |                                                                                |
     * | RGraph is dual licensed under the Open Source GPL (General Public License)     |
     * | v2.0 license and a commercial license which means that you're not bound by     |
-    * | the terms of the GPL. The commercial license is just £99 (GBP) and you can     |
-    * | read about it here:                                                            |
+    * | the terms of the GPL. The commercial license starts at just £99 (GBP) and      |
+    * | you can read about it here:                                                    |
+    * |                                                                                |
     * |                      http://www.rgraph.net/license                             |
     * o--------------------------------------------------------------------------------o
     */
@@ -357,6 +358,50 @@
 
 
 
+    //
+    // An array_trim function that removes the empty elements off
+    //both ends
+    //
+    RG.arrayTrim = function (arr)
+    {
+        var out = [], content = false;
+
+        // Trim the start
+        for (var i=0; i<arr.length; i++) {
+        
+            if (arr[i]) {
+                content = true;
+            }
+        
+            if (content) {
+                out.push(arr[i]);
+            }
+        }
+        
+        // Reverse the array and trim the start again
+        out = RG.arrayReverse(out);
+
+        var out2 = [], content = false ;
+        for (var i=0; i<out.length; i++) {
+        
+            if (out[i]) {
+                content = true;
+            }
+        
+            if (content) {
+                out2.push(out[i]);
+            }
+        }
+        
+        // Now reverse the array and return it
+        out2 = RG.arrayReverse(out2);
+
+        return out2;
+    };
+
+
+
+
     /**
     * Makes a clone of an object
     * 
@@ -394,7 +439,8 @@
 
 
     /**
-    * Returns the maximum numeric value which is in an array
+    * Returns the maximum numeric value which is in an array. This function IS NOT
+    * recursive
     * 
     * @param  array arr The array (can also be a number, in which case it's returned as-is)
     * @param  int       Whether to ignore signs (ie negative/positive)
@@ -588,13 +634,53 @@
     RG.arrayReverse =
     RG.array_reverse = function (arr)
     {
+        if (!arr) {
+            return;
+        }
+
         var newarr=[];
-        
+
         for(var i=arr.length - 1; i>=0; i-=1) {
             newarr.push(arr[i]);
         }
         
         return newarr;
+    };
+
+
+
+
+    /**
+    * Returns the absolute value of a number. You can also pass in an
+    * array and it will run the abs() function on each element. It
+    * operates recursively so sub-arrays are also traversed.
+    * 
+    * @param array arr The number or array to work on
+    */
+    RG.abs = function (value)
+    {
+        if (typeof value === 'string') {
+            value = parseFloat(value) || 0;
+        }
+
+        if (typeof value === 'number') {
+            return ma.abs(value);
+        }
+
+        if (typeof value === 'object') {
+            for (i in value) {
+                if (   typeof i === 'string'
+                    || typeof i === 'number'
+                    || typeof i === 'object') {
+
+                    value[i] = RG.abs(value[i]);
+                }
+            }
+            
+            return value;
+        }
+        
+        return 0;
     };
 
 
@@ -1963,9 +2049,72 @@
     RG.draw3DAxes =
     RG.Draw3DAxes = function (obj)
     {
-        var prop = obj.properties;
-        var co   = obj.context;
-        var ca   = obj.canvas;
+        var prop = obj.properties,
+            co   = obj.context,
+            ca   = obj.canvas;
+
+        var gutterLeft    = obj.gutterLeft,
+            gutterRight   = obj.gutterRight,
+            gutterTop     = obj.gutterTop,
+            gutterBottom  = obj.gutterBottom,
+            xaxispos      = prop['chart.xaxispos'],
+            graphArea     = ca.height - gutterTop - gutterBottom,
+            halfGraphArea = graphArea / 2,
+            offsetx       = prop['chart.variant.threed.offsetx'],
+            offsety       = prop['chart.variant.threed.offsety'],
+            xaxis         = prop['chart.variant.threed.xaxis'],
+            yaxis         = prop['chart.variant.threed.yaxis']
+        
+
+        //
+        // Draw the 3D Y axis
+        //
+        if (yaxis) {
+            RG.draw3DYAxis(obj);
+        }
+        
+        
+        
+        // X axis
+        if (xaxis) {
+            if (xaxispos === 'center') {
+                RG.path(co, [
+                    'b',
+                    'm',gutterLeft,gutterTop + halfGraphArea,
+                    'l',gutterLeft + offsetx,gutterTop + halfGraphArea - offsety,
+    
+                    'l',ca.width - gutterRight + offsetx,gutterTop + halfGraphArea - offsety,
+                    'l',ca.width - gutterRight,gutterTop + halfGraphArea,
+                    'c',
+                    's','#aaa',
+                    'f','#ddd'
+                ]);
+            } else {
+                RG.path(co, [
+                    'b',
+                    'm',gutterLeft,ca.height - gutterBottom,
+                    'l',gutterLeft + offsetx,ca.height - gutterBottom - offsety,
+                    'l',ca.width - gutterRight + offsetx,ca.height - gutterBottom - offsety,
+                    'l',ca.width - gutterRight,ca.height - gutterBottom,
+                    'c','s','#aaa','f','#ddd'
+                ]);
+            }
+        }
+    };
+
+
+
+
+    /**
+    * Draws the3D Y axis/background
+    * 
+    * @param object obj The chart object
+    */
+    RG.draw3DYAxis = function (obj)
+    {
+        var prop = obj.properties,
+            co   = obj.context,
+            ca   = obj.canvas;
 
         var gutterLeft    = obj.gutterLeft,
             gutterRight   = obj.gutterRight,
@@ -1977,36 +2126,29 @@
             offsetx       = prop['chart.variant.threed.offsetx'],
             offsety       = prop['chart.variant.threed.offsety']
 
-        if (!prop['chart.noaxes'] && !prop['chart.noyaxis']) {
+        
+        
+        // Y axis
+        // Commented out the if condition because of drawing oddities
+        //if (!prop['chart.noaxes'] && !prop['chart.noyaxis']) {
+        
+            if (obj.type === 'hbar' && prop['chart.yaxispos'] === 'center') {
+                var x = ((ca.width - gutterLeft - gutterRight) / 2) + gutterLeft;
+            } else if (obj.type === 'hbar' && prop['chart.yaxispos'] === 'right') {
+                var x = ca.width - gutterRight;
+            } else {
+                var x = gutterLeft;
+            }
+
             RG.path(co, [
                 'b',
-                // Y axis
-                'm', gutterLeft,gutterTop,
-                'l',gutterLeft + offsetx,gutterTop - offsety,
-                'l',gutterLeft + offsetx,ca.height - gutterBottom - offsety,
-                'l',gutterLeft,ca.height - gutterBottom
+                'm', x,gutterTop,
+                'l',x + offsetx,gutterTop - offsety,
+                'l',x + offsetx,ca.height - gutterBottom - offsety,
+                'l',x,ca.height - gutterBottom,
+                's','#aaa','f','#ddd'
             ]);
-        }
-        
-        // X axis
-        if (xaxispos === 'center') {
-            RG.path(co, [
-                'm',gutterLeft,gutterTop + halfGraphArea,
-                'l',gutterLeft + offsetx,gutterTop + halfGraphArea - offsety,
-
-                'l',ca.width - gutterRight + offsetx,gutterTop + halfGraphArea - offsety,
-                'l',ca.width - gutterRight,gutterTop + halfGraphArea,
-                'c','s','#aaa','f','#ddd'
-            ]);
-        } else {
-            RG.path(co, [
-                'm',gutterLeft,ca.height - gutterBottom,
-                'l',gutterLeft + offsetx,ca.height - gutterBottom - offsety,
-                'l',ca.width - gutterRight + offsetx,ca.height - gutterBottom - offsety,
-                'l',ca.width - gutterRight,ca.height - gutterBottom,
-                'c','s','#aaa','f','#ddd'
-            ]);
-        }
+        //}
     };
 
 
@@ -3844,7 +3986,7 @@
         if (obj.isRGraph && typeof obj.type === 'string') {
             var co = obj.context;
         } else {
-            var co = obj;
+            var co = obj,
                obj = obj.canvas.__object__;
         }
 
@@ -4551,50 +4693,31 @@
     * 
     * So you can use it like these examples show:
     * 
-    * 1. RG.pa2(context, 'b r 0 0 50 50 f red');
-    * 2. RG.pa2(context, 'b a 50 50 50 0 3.14 false f red');
-    * 3. RG.pa2(context, 'b m 5 100 bc 5 0 100 0 100 100 s red');
-    * 4. RG.pa2(context, 'b m 5 100 at 50 0 95 100 50 s red');
-    * 5. RG.pa2(context, 'sa b r 0 0 50 50 c b r 5 5 590 240 f red rs');
-    * 6. RG.pa2(context, 'ld [2,6] ldo 4 b r 5 5 590 240 f red');
-    * 7. RG.pa2(context, 'ga 0.25 b r 5 5 590 240 f red');
+    * 1. RG.path2(context, 'b r 0 0 50 50 f red');
+    * 2. RG.path2(context, 'b a 50 50 50 0 3.14 false f red');
+    * 3. RG.path2(context, 'b m 5 100 bc 5 0 100 0 100 100 s red');
+    * 4. RG.path2(context, 'b m 5 100 at 50 0 95 100 50 s red');
+    * 5. RG.path2(context, 'sa b r 0 0 50 50 c b r 5 5 590 240 f red rs');
+    * 6. RG.path2(context, 'ld [2,6] ldo 4 b r 5 5 590 240 f red');
+    * 7. RG.path2(context, 'ga 0.25 b r 5 5 590 240 f red');
     * 
     * @param   array p  The path details
     */
     RG.path2 = function (co, p)
     {
+        // Save this functions arguments
+        var args = arguments;
+        
+        
+        // If the path was a string - split it then collapse quoted bits together
         if (typeof p === 'string') {
-            
-            // Clear leading and trailing whitespace
-            p = p.trim();
-
-
-
-
-            // Allow for % placeholder substitution
-            if (p.indexOf('%') !== -1) {
-
-                p = p.split(/%/);
-
-                for (var i=1; i<p.length; i+=1) {
-                    p[i] = arguments[i+1].toString() + ' ' + p[i];
-                }
-
-                p = p.join(' ');
-            }
-
-
-
-
-            // Split up the path
-            p = p.split(/ +/);
+            p = splitstring(p);
         }
 
-        // Collapse args that are in single or double quotes
-        p = collapseQuoted(p);
+        // Store the last path on the RGraph object
+        RG.path2.last = RG.arrayClone(p);
 
-
-        // Go through the path information
+        // Go through the path information.
         for (var i=0,len=p.length; i<len; i+=1) {
 
             switch (p[i]) {
@@ -4630,7 +4753,7 @@
                 case 'tf':co.transform(parseFloat(p[i+1]),parseFloat(p[i+2]),parseFloat(p[i+3]),parseFloat(p[i+4]),parseFloat(p[i+5]),parseFloat(p[i+6]));i+=6;break;
                 case 'stf':co.setTransform(parseFloat(p[i+1]),parseFloat(p[i+2]),parseFloat(p[i+3]),parseFloat(p[i+4]),parseFloat(p[i+5]),parseFloat(p[i+6]));i+=6;break;
                 case 'cr':co.clearRect(parseFloat(p[i+1]),parseFloat(p[i+2]),parseFloat(p[i+3]),parseFloat(p[i+4]));i+=4;break;
-                case 'ld':var parts = p[i+1].split(/,/);for (var j=0;j<parts.length; j++){parts[j] = parts[j].replace(/^\[/, '');parts[j] = parts[j].replace(/\]$/, '');}co.setLineDash(parts);i+=1;break;
+                case 'ld':var parts = p[i+1];co.setLineDash(parts);i+=1;break;
                 case 'ldo':co.lineDashOffset=p[i+1];i++;break;
                 case 'fo':co.font=p[i+1];i++;break;
                 case 'ft':co.fillText(p[i+1], parseFloat(p[i+2]), parseFloat(p[i+3]));i+=3;break;
@@ -4648,52 +4771,51 @@
             }
         }
         
-        //
-        // This function looks for quoted args and collapses them
-        //
-        function collapseQuoted (arr)
+        function splitstring (p)
         {
-            var buffer = '', quote, index,out = [],quotes = ['"', "'"];
+            var ret = [], buffer = '', inquote = false, quote = '', substitutionIndex = 2;
 
-            for (var j=0; j<quotes.length; j+=1) {
-                for (var i=0; i<arr.length; i+=1) {
+            for (var i=0; i<p.length; i+=1) {
                 
-                    // Start and close quotes in the same part
-                    if (arr[i].match('/^' + quotes[j] + '/') && arr[i].match('/' + quotes[j] + '$/')) {
-                        arr[i] = arr[i].substr(1, arr[i].length - 2);
-                    }
+                var chr = p[i],
+                    isWS = chr.match(/ /);
+
+                if (isWS) {
+                    if (!inquote) {
                     
-                    // Start quoted part
-                    if (buffer.length === 0 && arr[i].indexOf(quotes[j]) !== -1) {
-                        buffer = arr[i].substr(arr[i].indexOf(quotes[j]) + 1, arr[i].length);
-                        quote = quotes[j];
-                        index = i;
-    
-                    // End quoted part
-                    } else if (quote && arr[i].indexOf(quote) !== -1) {
-    
-                        buffer = buffer + ' ' + arr[i].substr(0, arr[i].length - 1);
-                        arr[index] = buffer;
-                        arr[i] = '';
-                        quote  = '';
+                        // Get rid of any enclosing quotes
+                        if (buffer[0] === '"' || buffer[0] === "'") {
+                            buffer = buffer.substr(1, buffer.length - 2);
+                        }
+
+
+                        // String substitution
+                        if (buffer.trim() === '%' && typeof args[substitutionIndex] !== 'undefined') {
+                            buffer = args[substitutionIndex++];
+                        }
+
+                        ret.push(buffer);
                         buffer = '';
-                    
-                    // Add to quoted part
-                    } else if (quote) {
-                        buffer += ' ' + arr[i];
-                        arr[i] = '';
+                    } else {
+                        buffer += chr;
                     }
+                } else {
+                    if (chr === "'" || chr === '"') {
+                        inquote = !inquote;
+                    }
+
+                    buffer += chr;
                 }
             }
 
-            // Trim the array down
-            for (i=0; i<arr.length; i+=1) {
-                if (arr[i].length) {
-                    out.push(arr[i]);
-                }
+            // Do the last bit (including substitution)
+            if (buffer.trim() === '%' && args[substitutionIndex]) {
+                buffer = args[substitutionIndex++];
             }
 
-            return out;
+            ret.push(buffer);
+
+            return ret;
         }
     };
 

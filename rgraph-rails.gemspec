@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = RgraphRails::VERSION
   spec.authors       = ["Daniel Griffin"]
   spec.email         = ["danielseangriffin@gmail.com"]
-  spec.licenses      = ["GPL"]
+  spec.licenses      = ["GPL-3.0"]
 
   spec.summary       = %q{ The rgraph (http://www.rgraph.net/) interactive chart/graph library with the Rails asset pipeline. }
   spec.description   = %q{ The rgraph (http://www.rgraph.net/) interactive chart/graph library with the Rails asset pipeline. }
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "railties", "~> 4.2"
+  spec.add_dependency "railties", ">= 4.2"
   spec.add_development_dependency "bundler", "~> 1.10"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.3"

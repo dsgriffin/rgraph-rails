@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -34,8 +34,6 @@
         * Allow for object config style
         */
         if (   typeof conf === 'object'
-            && typeof conf.min === 'number'
-            && typeof conf.max === 'number'
             && typeof conf.id === 'string') {
 
             var parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
@@ -43,11 +41,11 @@
         } else {
 
             var conf = {
-                           id: arguments[0],
-                          min: arguments[1],
-                          max: arguments[2],
-                        value: arguments[3]
-                       }
+                id: arguments[0],
+                min: arguments[1],
+                max: arguments[2],
+                value: arguments[3]
+            }
         }
 
 
@@ -58,8 +56,8 @@
         this.context           = this.canvas.getContext('2d');
         this.canvas.__object__ = this;
 
-        this.min               = conf.min;
-        this.max               = conf.max;
+        this.min               = RGraph.stringsToNumbers(conf.min);
+        this.max               = RGraph.stringsToNumbers(conf.max);
         this.value             = RGraph.stringsToNumbers(conf.value);
         this.type              = 'vprogress';
         this.coords            = [];

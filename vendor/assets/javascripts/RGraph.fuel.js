@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -29,24 +29,22 @@
         * Allow for object config style
         */
         if (   typeof conf === 'object'
-            && typeof conf.min === 'number'
-            && typeof conf.max === 'number'
             && typeof conf.id === 'string') {
 
-            var id                        = conf.id
-            var canvas                    = document.getElementById(id);
-            var min                       = conf.min;
-            var max                       = conf.max;
-            var value                     = conf.value;
-            var parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
+            var id                        = conf.id,
+                canvas                    = document.getElementById(id),
+                min                       = conf.min,
+                max                       = conf.max,
+                value                     = conf.value,
+                parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
         
         } else {
         
-            var id     = conf;
-            var canvas = document.getElementById(id);
-            var min    = arguments[1];
-            var max    = arguments[2];
-            var value  = arguments[3];
+            var id     = conf,
+                canvas = document.getElementById(id),
+                min    = arguments[1],
+                max    = arguments[2],
+                value  = arguments[3];
         }
 
         // Get the canvas and context objects
@@ -56,8 +54,8 @@
         this.canvas.__object__ = this;
         this.type              = 'fuel';
         this.isRGraph          = true;
-        this.min               = min;
-        this.max               = max;
+        this.min               = RGraph.stringsToNumbers(min);
+        this.max               = RGraph.stringsToNumbers(max);
         this.value             = RGraph.stringsToNumbers(value);
         this.angles            = {};
         this.currentValue      = null;

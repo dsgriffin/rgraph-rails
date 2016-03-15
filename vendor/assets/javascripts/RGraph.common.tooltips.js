@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -7,8 +7,9 @@
     * |                                                                                |
     * | RGraph is dual licensed under the Open Source GPL (General Public License)     |
     * | v2.0 license and a commercial license which means that you're not bound by     |
-    * | the terms of the GPL. The commercial license is just £99 (GBP) and you can     |
-    * | read about it here:                                                            |
+    * | the terms of the GPL. The commercial license starts at just £99 (GBP) and      |
+    * | you can read about it here:                                                    |
+    * |                                                                                |
     * |                      http://www.rgraph.net/license                             |
     * o--------------------------------------------------------------------------------o
     */
@@ -134,7 +135,7 @@
         tooltipObj.id                       = '__rgraph_tooltip_' + obj.canvas.id + '_' + obj.uid + '_'+ idx;
         tooltipObj.__event__                = obj.Get('chart.tooltips.event') || 'click';
         tooltipObj.__object__               = obj;
-        
+
         if (typeof(idx) == 'number') {
             tooltipObj.__index__ = idx;
             origIdx = idx;
@@ -171,6 +172,7 @@
         /**
         * If the function exists call the object specific tooltip positioning function
         */
+
         if (typeof(obj.positionTooltip) == 'function') {
             if (tooltipObj.innerHTML.length > 0) {
 
