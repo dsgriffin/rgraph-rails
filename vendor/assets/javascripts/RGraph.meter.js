@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -29,8 +29,6 @@
         * Allow for object config style
         */
         if (   typeof conf === 'object'
-            && typeof conf.min === 'number'
-            && typeof conf.max === 'number'
             && typeof conf.value !== 'undefined'
             && typeof conf.id === 'string') {
 
@@ -60,8 +58,8 @@
         this.context           = this.canvas.getContext ? this.canvas.getContext("2d", {alpha: (typeof id === 'object' && id.alpha === false) ? false : true}) : null;
         this.canvas.__object__ = this;
         this.type              = 'meter';
-        this.min               = min;
-        this.max               = max;
+        this.min               = RGraph.stringsToNumbers(min);
+        this.max               = RGraph.stringsToNumbers(max);
         this.value             = RGraph.stringsToNumbers(value);
         this.centerx           = null;
         this.centery           = null;
@@ -162,6 +160,7 @@
             'chart.centery':                  null,
             'chart.labels':                   true,
             'chart.labels.count':             10,
+            'chart.labels.specific':          null,
             'chart.segment.radius.start':     0,
             'chart.needle.radius':            null,
             'chart.needle.tail':              false,
@@ -865,18 +864,55 @@
                 return;
             }
 
-            var radius     = this.radius;
-            var text_size  = prop['chart.text.size'];
-            var text_font  = prop['chart.text.font'];
-            var units_post = prop['chart.units.post'];
-            var units_pre  = prop['chart.units.pre'];
-            var centerx    = this.centerx;
-            var centery    = this.centery;
-            var min        = this.min;
-            var max        = this.max;
-            var decimals   = prop['chart.scale.decimals'];
-            var numLabels  = prop['chart.labels.count'];
-    
+            var radius     = this.radius,
+                text_size  = prop['chart.text.size'],
+                text_font  = prop['chart.text.font'],
+                units_post = prop['chart.units.post'],
+                units_pre  = prop['chart.units.pre'],
+                centerx    = this.centerx,
+                centery    = this.centery,
+                min        = this.min,
+                max        = this.max,
+                decimals   = prop['chart.scale.decimals'],
+                numLabels  = prop['chart.labels.count'],
+                specific   = prop['chart.labels.specific']
+
+
+
+
+//
+// Draw the specific labels if they're specifid
+//
+if (specific) {
+    for (var i=0; i<specific.length; ++i) {
+
+        var         angle = this.getAngle(specific[i][1]),
+            angle_degrees = angle * (180 / RG.PI),
+                    text  = specific[i][0].toString(),
+                    coords = RG.getRadiusEndPoint(this.centerx, this.centery, angle, this.radius * 0.925)
+
+
+        RG.text2(this, {
+            'font':text_font,
+            'size':text_size,
+            'x': coords[0],
+            'y': coords[1],
+            'text':text,
+            'halign':'center',
+            'valign':'center',
+            'angle':angle_degrees + 90,
+            'bounding': false,
+            'tag': 'labels-specific',
+            color: 'black'
+        });
+    }
+
+    return;
+}
+
+
+
+
             co.fillStyle = prop['chart.text.color'];
             co.lineWidth = 1;
     
@@ -887,13 +923,12 @@
                 var angle      = ((prop['chart.angles.end'] - prop['chart.angles.start']) * (i / numLabels)) + prop['chart.angles.start'];
                 var coords     = RG.getRadiusEndPoint(centerx, centery, angle + (((i == 0 || i == numLabels) && prop['chart.border']) ? (i == 0 ? 0.05 : -0.05) : 0), (this.radius * 0.925) - (prop['chart.text.valign'] === 'bottom' ? 15 : 0));
                 
-                var angleStart = prop['chart.angles.start'];
-                var angleEnd   = prop['chart.angles.end'];
-                var angleRange = angleEnd - angleStart;
-                
-                var angleStart_degrees = angleStart * (180 / RG.PI);
-                var angleEnd_degrees = angleEnd * (180 / RG.PI);
-                var angleRange_degrees = angleRange * (180 / RG.PI);
+                var angleStart = prop['chart.angles.start'],
+                    angleEnd   = prop['chart.angles.end'],
+                    angleRange = angleEnd - angleStart,                
+                    angleStart_degrees = angleStart * (180 / RG.PI),
+                    angleEnd_degrees = angleEnd * (180 / RG.PI),
+                    angleRange_degrees = angleRange * (180 / RG.PI)
 
                 // Vertical alignment
                 valign = prop['chart.text.valign'];
@@ -911,18 +946,19 @@
                     halign = 'center';
                 }
     
-                RG.Text2(this, {'font':text_font,
-                                'size':text_size,
-                                'x':coords[0],
-                                'y':coords[1],
-                                'text':RG.numberFormat(this, (((this.max - this.min) * (i / numLabels)) + this.min).toFixed(decimals),units_pre,units_post),
-                                'halign':halign,
-                                'valign':valign,
-                                'angle':((angleRange_degrees * (1 / numLabels) * i) + angleStart_degrees) - 270,
-                                'bounding':false,
-                                'boundingFill':(i == 0 || i == numLabels) ? 'white': null,
-                                'tag': 'scale'
-                               });
+                RG.text2(this, {
+                    'font':text_font,
+                    'size':text_size,
+                    'x':coords[0],
+                    'y':coords[1],
+                    'text':RG.numberFormat(this, (((this.max - this.min) * (i / numLabels)) + this.min).toFixed(decimals),units_pre,units_post),
+                    'halign':halign,
+                    'valign':valign,
+                    'angle':((angleRange_degrees * (1 / numLabels) * i) + angleStart_degrees) - 270,
+                    'bounding':false,
+                    'boundingFill':(i == 0 || i == numLabels) ? 'white': null,
+                    'tag': 'scale'
+                });
             }
         };
 

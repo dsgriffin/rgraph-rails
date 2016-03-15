@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -83,6 +83,8 @@
             'chart.labels.sticks':          false,
             'chart.labels.sticks.length':   7,
             'chart.labels.sticks.color':    '#aaa',
+            'chart.labels.sticks.usecolors': false,
+            'chart.labels.sticks.linewidth': 1,
             'chart.labels.sticks.hlength':  5,
             'chart.labels.ingraph':         null,
             'chart.labels.ingraph.color':   null,
@@ -875,14 +877,16 @@
         this.drawSticks =
         this.DrawSticks = function ()
         {
-            var context  = co;
-            var offset   = prop['chart.linewidth'] / 2;
-            var exploded = prop['chart.exploded'];
-            var sticks   = prop['chart.labels.sticks'];
-            var cx       = this.centerx;
-            var cy       = this.centery;
-            var radius   = this.radius;
-            var points   = [];
+            var context   = co,
+                offset    = prop['chart.linewidth'] / 2,
+                exploded  = prop['chart.exploded'],
+                sticks    = prop['chart.labels.sticks'],
+                colors    = prop['chart.colors'],
+                cx        = this.centerx,
+                cy        = this.centery,
+                radius     = this.radius,
+                points    = [],
+                linewidth = prop['chart.labels.sticks.linewidth']
     
             for (var i=0,len=this.angles.length; i<len; ++i) {
             
@@ -897,7 +901,14 @@
     
                 co.beginPath();
                 co.strokeStyle = prop['chart.labels.sticks.color'];
-                co.lineWidth   = 1;
+                co.lineWidth   = prop['chart.labels.sticks.linewidth'];
+                
+                //
+                // Allow for labelsSticksUseColors
+                //
+                if (prop['chart.labels.sticks.usecolors']) {
+                    co.strokeStyle = prop['chart.colors'][i];
+                }
     
                 var midpoint = (segment[0] + (radians / 2));
     
@@ -908,9 +919,6 @@
                 } else {
                     var extra = 0;
                 }
-    
-                //context.lineJoin = 'round';
-                co.lineWidth = 1;
                 
                 /**
                 * Determine the stick length
@@ -1228,8 +1236,8 @@
     
                         co.strokeStyle = prop['chart.highlight.style.2d.stroke'];
                         co.fillStyle   = prop['chart.highlight.style.2d.fill'];
-                        
-                        if (prop['chart.variant'].indexOf('donut') -1) {
+
+                        if (prop['chart.variant'].indexOf('donut') > -1) {
                             co.arc(shape['x'], shape['y'], shape['radius'], shape['angle.start'], shape['angle.end'], false);
                             co.arc(shape['x'], shape['y'], typeof(prop['chart.variant.donut.width']) == 'number' ? this.radius - prop['chart.variant.donut.width'] : shape['radius'] / 2, shape['angle.end'], shape['angle.start'], true);
                         } else {

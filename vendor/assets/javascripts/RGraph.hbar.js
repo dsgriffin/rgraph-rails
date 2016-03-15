@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -7,8 +7,9 @@
     * |                                                                                |
     * | RGraph is dual licensed under the Open Source GPL (General Public License)     |
     * | v2.0 license and a commercial license which means that you're not bound by     |
-    * | the terms of the GPL. The commercial license is just £99 (GBP) and you can     |
-    * | read about it here:                                                            |
+    * | the terms of the GPL. The commercial license starts at just £99 (GBP) and      |
+    * | you can read about it here:                                                    |
+    * |                                                                                |
     * |                      http://www.rgraph.net/license                             |
     * o--------------------------------------------------------------------------------o
     */
@@ -60,6 +61,7 @@
         this.coordsText        = [];
         this.original_colors   = [];
         this.firstDraw         = true; // After the first draw this will be false
+
 
 
         /**
@@ -198,6 +200,7 @@
             'chart.scale.point':            '.',
             'chart.scale.thousand':         ',',
             'chart.scale.decimals':         null,
+            'chart.scale.zerostart':        false,
             'chart.noredraw':               false,
             'chart.events.click':           null,
             'chart.events.mousemove':       null,
@@ -207,7 +210,15 @@
             'chart.noxtickmarks':           false,
             'chart.noytickmarks':           false,
             'chart.numyticks':              data.length,
-            'chart.numxticks':              10
+            'chart.numxticks':              10,
+            'chart.variant':                'hbar',
+            'chart.variant.threed.angle':   0.1,
+            'chart.variant.threed.offsetx': 10,
+            'chart.variant.threed.offsety': 5,
+            'chart.variant.threed.xaxis':   true,
+            'chart.variant.threed.yaxis':   true,
+            'chart.yaxispos':               'left',
+            'chart.variant':                'hbar'
         }
 
         // Check for support
@@ -236,7 +247,7 @@
         /**
         * Create the linear data array
         */
-        this.data_arr = RGraph.array_linearize(this.data);
+        this.data_arr = RGraph.arrayLinearize(this.data);
 
 
         /**
@@ -316,7 +327,7 @@
             if (name == 'chart.labels.abovebar') {
                 name = 'chart.labels.above';
             }
-    
+
             prop[name] = value;
     
             return this;
@@ -367,7 +378,24 @@
             * Fire the onbeforedraw event
             */
             RG.FireCustomEvent(this, 'onbeforedraw');
-    
+
+
+
+
+            //
+            // If the chart is 3d then angle it it
+            //
+            if (prop['chart.variant'] === '3d') {
+                co.setTransform(1,prop['chart.variant.threed.angle'],0,1,0.5,0.5);
+                
+                // Enlarge the gutter if its 25
+                if (prop['chart.gutter.bottom'] === 25) {
+                    this.set('gutterBottom', 80);
+                }
+            }
+
+
+
     
             /**
             * Parse the colors. This allows for simple gradient syntax
@@ -421,7 +449,10 @@
             this.gutterRight  = prop['chart.gutter.right'];
             this.gutterTop    = prop['chart.gutter.top'];
             this.gutterBottom = prop['chart.gutter.bottom'];
-    
+
+            
+
+
             /**
             * Stop the coords array from growing uncontrollably
             */
@@ -446,6 +477,7 @@
             this.graphheight    = ca.height - this.gutterTop - this.gutterBottom;
             this.halfgrapharea  = this.grapharea / 2;
             this.halfTextHeight = prop['chart.text.size'] / 2;
+            this.halfway = ma.round((this.graphwidth / 2) + this.gutterLeft)
     
     
     
@@ -539,13 +571,21 @@
         this.drawAxes =
         this.DrawAxes = function ()
         {
-            var halfway = ma.round((this.graphwidth / 2) + this.gutterLeft);
-    
+            var halfway = this.halfway
+
+
+
+
+
+
             co.beginPath();
                 
                 co.lineWidth   = prop['chart.axis.linewidth'] ? prop['chart.axis.linewidth'] + 0.001 : 1.001;
                 co.strokeStyle = prop['chart.axis.color'];
-    
+
+
+
+
                 // Draw the Y axis
                 if (prop['chart.noyaxis'] == false && prop['chart.noaxes'] == false) {
                     if (prop['chart.yaxispos'] == 'center') {
@@ -677,10 +717,10 @@
         this.drawLabels =
         this.DrawLabels = function ()
         {
-            var units_pre  = prop['chart.units.pre'];
-            var units_post = prop['chart.units.post'];
-            var text_size  = prop['chart.text.size'];
-            var font       = prop['chart.text.font'];
+            var units_pre  = prop['chart.units.pre'],
+                units_post = prop['chart.units.post'],
+                text_size  = prop['chart.text.size'],
+                font       = prop['chart.text.font'];
     
     
     
@@ -784,61 +824,68 @@
                     if (prop['chart.yaxispos'] == 'center') {
         
                         for (var i=0; i<this.scale2.labels.length; ++i) {
-                            RG.Text2(this, {'font':font,
-                                                'size':text_size,
-                                                'x':this.gutterLeft + (this.graphwidth / 2) - ((this.graphwidth / 2) * ((i+1)/this.scale2.labels.length)),
-                                                'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
-                                                'text':'-' + this.scale2.labels[i],
-                                                'valign':'center',
-                                                'halign':'center',
-                                        'tag': 'scale'});
+                            RG.text2(this, {
+                                'font':font,
+                                'size':text_size,
+                                'x':this.gutterLeft + (this.graphwidth / 2) - ((this.graphwidth / 2) * ((i+1)/this.scale2.labels.length)),
+                                'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
+                                'text':'-' + this.scale2.labels[i],
+                                'valign':'center',
+                                'halign':'center',
+                                'tag': 'scale'
+                            });
                         }
         
                         for (var i=0; i<this.scale2.labels.length; ++i) {
-                            RG.Text2(this, {'font':font,
-                                                'size':text_size,
-                                                'x':this.gutterLeft + ((this.graphwidth / 2) * ((i+1)/this.scale2.labels.length)) + (this.graphwidth / 2),
-                                                'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
-                                                'text':this.scale2.labels[i],
-                                                'valign':'center',
-                                                'halign':'center',
-                                        'tag': 'scale'});
+                            RG.text2(this, {
+                                'font':font,
+                                'size':text_size,
+                                'x':this.gutterLeft + ((this.graphwidth / 2) * ((i+1)/this.scale2.labels.length)) + (this.graphwidth / 2),
+                                'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
+                                'text':this.scale2.labels[i],
+                                'valign':'center',
+                                'halign':'center',
+                                'tag': 'scale'
+                            });
                         }
                 
                     }else if (prop['chart.yaxispos'] == 'right') {
 
                     
                         for (var i=0,len=this.scale2.labels.length; i<len; ++i) {
-                            RG.Text2(this, {'font':font,
-                                            'size':text_size,
-                                            'x':this.gutterLeft + (i * (this.graphwidth / len)),
-                                            'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
-                                            'text':'-' + this.scale2.labels[len - 1 - i],
-                                            'valign':'center',
-                                            'halign':'center',
-                                            'tag': 'scale'
-                                           });
+                            RG.Text2(this, {
+                                'font':font,
+                                'size':text_size,
+                                'x':this.gutterLeft + (i * (this.graphwidth / len)),
+                                'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
+                                'text':'-' + this.scale2.labels[len - 1 - i],
+                                'valign':'center',
+                                'halign':'center',
+                                'tag': 'scale'
+                            });
                         }
+
 
                     } else {
                         for (var i=0,len=this.scale2.labels.length; i<len; ++i) {
-                            RG.Text2(this, {'font':font,
-                                            'size':text_size,
-                                            'x':this.gutterLeft + (this.graphwidth * ((i+1)/len)),
-                                            'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
-                                            'text':this.scale2.labels[i],
-                                            'valign':'center',
-                                            'halign':'center',
-                                            'tag': 'scale'
-                                           });
+                            RG.Text2(this, {
+                                'font':font,
+                                'size':text_size,
+                                'x':this.gutterLeft + (this.graphwidth * ((i+1)/len)),
+                                'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
+                                'text':this.scale2.labels[i],
+                                'valign':'center',
+                                'halign':'center',
+                                'tag': 'scale'
+                            });
                         }
                     }
         
                     /**
                     * If xmin is not zero - draw that
                     */
-                    if (prop['chart.xmin'] > 0 || prop['chart.noyaxis'] == true) {
-        
+                    if (prop['chart.xmin'] > 0 || prop['chart.noyaxis'] == true || prop['chart.scale.zerostart'] || prop['chart.noaxes']) {
+
                         var x = prop['chart.yaxispos'] == 'center' ?  this.gutterLeft + (this.graphwidth / 2): this.gutterLeft;
                         
                         /**
@@ -848,28 +895,35 @@
                             var x = ca.width - this.gutterRight;
                         }
         
-                        RG.Text2(this, {'font':font,
-                                            'size':text_size,
-                                            'x':x,
-                                            'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
-                                            'text':RG.number_format(this, prop['chart.xmin'].toFixed(prop['chart.scale.decimals']), units_pre, units_post),
-                                            'valign':'center',
-                                            'halign':'center',
-                                            'tag': 'scale'
-                                           });
+                        RG.text2(this, {
+                            'font':font,
+                            'size':text_size,
+                            'x':x,
+                            'y':this.gutterTop + this.halfTextHeight + this.graphheight + gap,
+                            'text':RG.numberFormat(this, prop['chart.xmin'].toFixed(prop['chart.scale.decimals']), units_pre, units_post),
+                            'valign':'center',
+                            'halign':'center',
+                            'tag': 'scale'
+                        });
                     }
         
                     co.fill();
                     co.stroke();
                 }
             }
-    
+
+
+
+
+
+
+
             /**
             * The Y axis labels
             */
-            if (typeof(prop['chart.labels']) == 'object') {
+            if (typeof prop['chart.labels'] == 'object') {
             
-                var xOffset = 5,
+                var xOffset = prop['chart.variant'] === '3d' && prop['chart.yaxispos'] === 'right' ? 15 : 5,
                     font    = prop['chart.text.font'],
                     color   = prop['chart.labels.color'] || prop['chart.text.color'],
                     bold    = prop['chart.labels.bold']
@@ -918,7 +972,8 @@
 
 
         /**
-        * This function draws the bars
+        * This function draws the bars. It also draw 3D axes as the axes drawing bit
+        * is don AFTER the bars are drawn
         */
         this.drawbars =
         this.Drawbars = function ()
@@ -926,25 +981,29 @@
             co.lineWidth   = prop['chart.linewidth'];
             co.strokeStyle = prop['chart.strokestyle'];
             co.fillStyle   = prop['chart.colors'][0];
-            var prevX      = 0;
-            var prevY      = 0;
+
+            var prevX = 0,
+                prevY = 0;
+            
     
             /**
             * Work out the max value
             */
             if (prop['chart.xmax']) {
 
-                this.scale2 = RG.getScale2(this, {'max':prop['chart.xmax'],
-                                                      'min':prop['chart.xmin'],
-                                                      'scale.decimals':Number(prop['chart.scale.decimals']),
-                                                      'scale.point':prop['chart.scale.point'],
-                                                      'scale.thousand':prop['chart.scale.thousand'],
-                                                      'scale.round':prop['chart.scale.round'],
-                                                      'units.pre':prop['chart.units.pre'],
-                                                      'units.post':prop['chart.units.post'],
-                                                      'ylabels.count':prop['chart.xlabels.count'],
-                                                      'strict':true
-                                                     });
+                this.scale2 = RG.getScale2(this, {
+                    'max':prop['chart.xmax'],
+                    'min':prop['chart.xmin'],
+                    'scale.decimals':Number(prop['chart.scale.decimals']),
+                    'scale.point':prop['chart.scale.point'],
+                    'scale.thousand':prop['chart.scale.thousand'],
+                    'scale.round':prop['chart.scale.round'],
+                    'units.pre':prop['chart.units.pre'],
+                    'units.post':prop['chart.units.post'],
+                    'ylabels.count':prop['chart.xlabels.count'],
+                    'strict':true
+                 });
+
                 this.max = this.scale2.max;
     
             } else {
@@ -955,23 +1014,24 @@
                     if (typeof(this.data[i]) == 'object') {
                         var value = grouping == 'grouped' ? Number(RG.array_max(this.data[i], true)) : Number(RG.array_sum(this.data[i])) ;
                     } else {
-                        var value = Number(Math.abs(this.data[i]));
+                        var value = Number(ma.abs(this.data[i]));
                     }
     
                     this.max = ma.max(Math.abs(this.max), Math.abs(value));
                 }
     
-                this.scale2 = RG.getScale2(this, {'max':this.max,
-                                                      'min':prop['chart.xmin'],
-                                                      'scale.decimals':Number(prop['chart.scale.decimals']),
-                                                      'scale.point':prop['chart.scale.point'],
-                                                      'scale.thousand':prop['chart.scale.thousand'],
-                                                      'scale.round':prop['chart.scale.round'],
-                                                      'units.pre':prop['chart.units.pre'],
-                                                      'units.post':prop['chart.units.post'],
-                                                      'ylabels.count':prop['chart.xlabels.count']
-                                                     });
-    
+                this.scale2 = RG.getScale2(this, {
+                    'max':this.max,
+                    'min':prop['chart.xmin'],
+                    'scale.decimals':Number(prop['chart.scale.decimals']),
+                    'scale.point':prop['chart.scale.point'],
+                    'scale.thousand':prop['chart.scale.thousand'],
+                    'scale.round':prop['chart.scale.round'],
+                    'units.pre':prop['chart.units.pre'],
+                    'units.post':prop['chart.units.post'],
+                    'ylabels.count':prop['chart.xlabels.count']
+                });
+
 
                 this.max = this.scale2.max;
                 this.min = this.scale2.min;
@@ -988,6 +1048,15 @@
 
 
 
+            // Draw the 3d axes if necessary
+            if (prop['chart.variant'] === '3d') {
+                RG.draw3DAxes(this);
+            }
+
+
+
+
+
 
             /**
             * The bars are drawn HERE
@@ -995,8 +1064,8 @@
             var graphwidth = (ca.width - this.gutterLeft - this.gutterRight);
             var halfwidth  = graphwidth / 2;
 
-            for (i=0,len=this.data.length; i<len; ++i) {
-    
+            for (i=(len=this.data.length-1); i>=0; --i) {
+
                 // Work out the width and height
                 var width  = ma.abs((this.data[i] / this.max) *  graphwidth);
                 var height = this.graphheight / this.data.length;
@@ -1027,16 +1096,18 @@
                     co.shadowOffsetX = prop['chart.shadow.offsetx'];
                     co.shadowOffsetY = prop['chart.shadow.offsety'];
                 }
-    
+
                 /**
                 * Draw the bar
                 */
                 co.beginPath();
-                    if (typeof(this.data[i]) == 'number') {
-    
-                        var barHeight = height - (2 * vmargin);
-                        var barWidth  = ((this.data[i] - prop['chart.xmin']) / (this.max - prop['chart.xmin'])) * this.graphwidth;
-                        var barX      = this.gutterLeft;
+                
+                    // Standard (non-grouped and non-stacked) bars here
+                    if (typeof this.data[i] == 'number' || RG.isNull(this.data[i])) {
+
+                        var barHeight = height - (2 * vmargin),
+                            barWidth  = ((this.data[i] - prop['chart.xmin']) / (this.max - prop['chart.xmin'])) * this.graphwidth,
+                            barX      = this.gutterLeft;
     
                         // Account for Y axis pos
                         if (prop['chart.yaxispos'] == 'center') {
@@ -1044,42 +1115,155 @@
                             barX += halfwidth;
                             
                             if (this.data[i] < 0) {
-                                barWidth = (Math.abs(this.data[i]) - prop['chart.xmin']) / (this.max - prop['chart.xmin']);
+                                barWidth = (ma.abs(this.data[i]) - prop['chart.xmin']) / (this.max - prop['chart.xmin']);
                                 barWidth = barWidth * (this.graphwidth / 2);
                                 barX = ((this.graphwidth / 2) + this.gutterLeft) - barWidth;
                             }
 
                         } else if (prop['chart.yaxispos'] == 'right') {
 
-                            barWidth = Math.abs(barWidth);
+                            barWidth = ma.abs(barWidth);
                             barX = ca.width - this.gutterRight - barWidth;
+
                         }
 
                         // Set the fill color
                         co.strokeStyle = prop['chart.strokestyle'];
-                        co.fillStyle = prop['chart.colors'][0];
-                        
+                        co.fillStyle   = prop['chart.colors'][0];
+
                         // Sequential colors
                         if (prop['chart.colors.sequential']) {
                             co.fillStyle = prop['chart.colors'][colorIdx++];
                         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                         co.strokeRect(barX, this.gutterTop + (i * height) + prop['chart.vmargin'], barWidth, barHeight);
                         co.fillRect(barX, this.gutterTop + (i * height) + prop['chart.vmargin'], barWidth, barHeight);
 
-                        this.coords.push([barX,
-                                          y + vmargin,
-                                          barWidth,
-                                          height - (2 * vmargin),
-                                          co.fillStyle,
-                                          this.data[i],
-                                          true]);
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            
+
+
+
+                        this.coords.push([
+                            barX,
+                            y + vmargin,
+                            barWidth,
+                            height - (2 * vmargin),
+                            co.fillStyle,
+                            this.data[i],
+                            true
+                        ]);
+
+
+
+
+
+
+                        // Draw the 3D effect using the coords that have just been stored
+                        if (prop['chart.variant'] === '3d' && typeof this.data[i] == 'number') {
+
+
+                            var prevStrokeStyle = co.strokeStyle,
+                                prevFillStyle   = co.fillStyle;
+
+                            /**
+                            * Turn off the shadow for the 3D bits
+                            */
+                            RG.noShadow(this);
+                            
+                            // DRAW THE 3D BITS HERE
+                            var barX    = barX,
+                                barY    = y + vmargin,
+                                barW    = barWidth,
+                                barH    = height - (2 * vmargin),
+                                offsetX = prop['chart.variant.threed.offsetx'],
+                                offsetY = prop['chart.variant.threed.offsety'],
+                                value   = this.data[i];
+
+
+                            pa2(
+                                co,
+                                [
+                                 'b',
+                                 'm', barX, barY,
+                                 'l', barX + offsetX - (prop['chart.yaxispos'] == 'left' && value < 0 ? offsetX : 0), barY - offsetY,
+                                 'l', barX + barW + offsetX - (prop['chart.yaxispos'] == 'center' && value < 0 ? offsetX : 0), barY - offsetY,
+                                 'l', barX + barW, barY,
+                                 'c',
+                                 's', co.strokeStyle,
+                                 'f', co.fillStyle,
+                                 'f','rgba(255,255,255,0.6)'//Fill again to lighten it
+                                ]
+                            );
+
+                            if (   prop['chart.yaxispos'] !== 'right'
+                                && !(prop['chart.yaxispos'] === 'center' && value < 0)
+                                && value >= 0
+                                && !RG.isNull(value)
+                               ) {
+
+                                pa2(
+                                    co,
+                                    [
+                                     'b',
+                                     'fs', prevFillStyle,
+                                     'm', barX + barW, barY,
+                                     'l', barX + barW + offsetX, barY - offsetY,
+                                     'l', barX + barW + offsetX, barY - offsetY + barH,
+                                     'l', barX + barW, barY + barH,
+                                     'c',
+                                     's', co.strokeStyle,
+                                     'f', prevFillStyle,
+                                     'f', 'rgba(0,0,0,0.25)'
+                                    ]
+                                );
+                            }
+
+                        }
+
+
+
+
+
+
                     /**
                     * Stacked bar chart
                     */
                     } else if (typeof(this.data[i]) == 'object' && prop['chart.grouping'] == 'stacked') {
-    
+
                         if (prop['chart.yaxispos'] == 'center') {
                             alert('[HBAR] You can\'t have a stacked chart with the Y axis in the center, change it to grouped');
                         } else if (prop['chart.yaxispos'] == 'right') {
@@ -1091,10 +1275,27 @@
                         if (typeof this.coords2[i] == 'undefined') {
                             this.coords2[i] = [];
                         }
-    
+
                         for (j=0; j<this.data[i].length; ++j) {
 
+                            // The previous 3D segments would have turned the shadow off - so turn it back on
+                            if (prop['chart.shadow'] && prop['chart.variant'] === '3d') {
+                                co.shadowColor   = prop['chart.shadow.color'];
+                                co.shadowBlur    = prop['chart.shadow.blur'];
+                                co.shadowOffsetX = prop['chart.shadow.offsetx'];
+                                co.shadowOffsetY = prop['chart.shadow.offsety'];
+                            }
+
+                            //
+                            // Ensure the number is positive
+                            //(even though having the X axis on the right implies a
+                            //negative value)
+                            //
+                            if (!RG.isNull(this.data[i][j])) this.data[i][j] = ma.abs(this.data[i][j]);
+
     
+                            var last = (j === (this.data[i].length - 1) );
+                            
                             // Set the fill/stroke colors
                             co.strokeStyle = prop['chart.strokestyle'];
                             co.fillStyle   = prop['chart.colors'][j];
@@ -1117,39 +1318,124 @@
 
                             co.strokeRect(x, this.gutterTop + prop['chart.vmargin'] + (this.graphheight / this.data.length) * i, width, height - (2 * vmargin) );
                             co.fillRect(x, this.gutterTop + prop['chart.vmargin'] + (this.graphheight / this.data.length) * i, width, height - (2 * vmargin) );
-    
+
+
                             /**
                             * Store the coords for tooltips
                             */
     
                             // The last property of this array is a boolean which tells you whether the value is the last or not
-                            this.coords.push([x,
-                                              y + vmargin,
-                                              width,
-                                              height - (2 * vmargin),
-                                              co.fillStyle,
-                                              RG.array_sum(this.data[i]),
-                                              j == (this.data[i].length - 1)
-                                             ]);
-                            this.coords2[i].push([x,
-                                                  y + vmargin,
-                                                  width,
-                                                  height - (2 * vmargin),
-                                                  co.fillStyle,
-                                                  RG.array_sum(this.data[i]),
-                                                  j == (this.data[i].length - 1)
-                                                 ]);
+                            this.coords.push([
+                                x,
+                                y + vmargin,
+                                width,
+                                height - (2 * vmargin),
+                                co.fillStyle,
+                                RG.array_sum(this.data[i]),
+                                j == (this.data[i].length - 1)
+                            ]);
+
+                            this.coords2[i].push([
+                                x,
+                                y + vmargin,
+                                width,
+                                height - (2 * vmargin),
+                                co.fillStyle,
+                                RG.array_sum(this.data[i]),
+                                j == (this.data[i].length - 1)
+                            ]);
+
+
+
+
+
+
+                            // 3D effect
+                            if (prop['chart.variant'] === '3d') {
+                            
+                                /**
+                                * Turn off the shadow for the 3D bits
+                                */
+                                RG.noShadow(this);
+
+                                var prevStrokeStyle = co.strokeStyle,
+                                    prevFillStyle   = co.fillStyle;
+
+                                // DRAW THE 3D BITS HERE
+                                var barX    = x,
+                                    barY    = y + vmargin,
+                                    barW    = width,
+                                    barH    = height - (2 * vmargin),
+                                    offsetX = prop['chart.variant.threed.offsetx'],
+                                    offsetY = prop['chart.variant.threed.offsety'],
+                                    value   = this.data[i][j];
+
+                                if (!RG.isNull(value)) {
+                                    pa2(
+                                        co,
+                                        [
+                                         'b',
+                                         'm', barX, barY,
+                                         'l', barX + offsetX, barY - offsetY,
+                                         'l', barX + barW + offsetX, barY - offsetY,
+                                         'l', barX + barW, barY,
+                                         'c',
+                                         's', co.strokeStyle,
+                                         'f', co.fillStyle,
+                                         'f','rgba(255,255,255,0.6)'//Fill again to lighten it
+                                        ]
+                                    );
+                                }
+    
+                                if (   prop['chart.yaxispos'] !== 'right'
+                                    && !(prop['chart.yaxispos'] === 'center' && value < 0)
+                                    && !RG.isNull(value)
+                                   ) {
+
+                                    pa2(
+                                        co,
+                                        [
+                                         'fs', prevFillStyle,
+                                         'b',
+                                         'm', barX + barW, barY,
+                                         'l', barX + barW + offsetX, barY - offsetY,
+                                         'l', barX + barW + offsetX, barY - offsetY + barH,
+                                         'l', barX + barW, barY + barH,
+                                         'c',
+                                         's', co.strokeStyle,
+                                         'f', prevFillStyle,
+                                         'f', 'rgba(0,0,0,0.25)'
+                                        ]
+                                    );
+                                }
+                            
+                                co.beginPath();
+                                co.strokeStyle = prevStrokeStyle;
+                                co.fillStyle   = prevFillStyle;
+                            }
+    
+    
+    
+    
+    
     
                             if (prop['chart.yaxispos'] !== 'right') {
                                 x += width;
                             }
                         }
-    
+
+
+
+
+
+
+
+
                     /**
                     * A grouped bar chart
                     */
                     } else if (typeof(this.data[i]) == 'object' && prop['chart.grouping'] == 'grouped') {
-    
+
                         var vmarginGrouped      = prop['chart.vmargin.grouped'];
                         var individualBarHeight = ((height - (2 * vmargin) - ((this.data[i].length - 1) * vmarginGrouped)) / this.data[i].length)
                         
@@ -1157,8 +1443,8 @@
                             this.coords2[i] = [];
                         }
                         
-                        for (j=0; j<this.data[i].length; ++j) {
-    
+                        for (j=(this.data[i].length - 1); j>=0; --j) {
+
     
                             /**
                             * Turn on the shadow if need be
@@ -1202,22 +1488,115 @@
     
                             co.strokeRect(startX, startY, width, individualBarHeight);
                             co.fillRect(startX, startY, width, individualBarHeight);
+
+
+
+
+
+
+                            this.coords.push([
+                                startX,
+                                startY,
+                                width,
+                                individualBarHeight,
+                                co.fillStyle,
+                                this.data[i][j],
+                                true
+                            ]);
     
-                            this.coords.push([startX,
-                                              startY,
-                                              width,
-                                              individualBarHeight,
-                                              co.fillStyle,
-                                              this.data[i][j],
-                                              true]);
+                            this.coords2[i].push([
+                                startX,
+                                startY,
+                                width,
+                                individualBarHeight,
+                                co.fillStyle,
+                                this.data[i][j],
+                                true
+                            ]);
+
+
+
+
+
+
+
+
+
+
+
+
+                            // 3D effect
+                            if (prop['chart.variant'] === '3d') {
+                            
+                                /**
+                                * Turn off the shadow for the 3D bits
+                                */
+                                RG.noShadow(this);
+
+                                var prevStrokeStyle = co.strokeStyle,
+                                    prevFillStyle   = co.fillStyle;
+                            
+                                // DRAW THE 3D BITS HERE
+                                var barX    = startX,
+                                    barY    = startY,
+                                    barW    = width,
+                                    barH    = individualBarHeight,
+                                    offsetX = prop['chart.variant.threed.offsetx'],
+                                    offsetY = prop['chart.variant.threed.offsety'],
+                                    value   = this.data[i][j];
+                                
+                                pa2(
+                                    co,
+                                    [
+                                     'b',
+                                     'm', barX, barY,
+                                     'l', barX + offsetX, barY - offsetY,
+                                     'l', barX + barW + offsetX - (value < 0 ? offsetX : 0), barY - offsetY,
+                                     'l', barX + barW, barY,
+                                     'c',
+                                     's', co.strokeStyle,
+                                     'f', co.fillStyle,
+                                     'f','rgba(255,255,255,0.6)'//Fill again to lighten it
+                                    ]
+                                );
     
-                            this.coords2[i].push([startX,
-                                                  startY,
-                                                  width,
-                                                  individualBarHeight,
-                                                  co.fillStyle,
-                                                  this.data[i][j],
-                                                  true]);
+                                if (   prop['chart.yaxispos'] !== 'right'
+                                    && !(prop['chart.yaxispos'] === 'center' && value < 0)
+                                    && value >= 0
+                                    && !RG.isNull(value)
+                                   ) {
+
+                                    pa2(
+                                        co,
+                                        [
+                                         'fs', prevFillStyle,
+                                         'b',
+                                         'm', barX + barW, barY,
+                                         'l', barX + barW + offsetX, barY - offsetY,
+                                         'l', barX + barW + offsetX, barY - offsetY + barH,
+                                         'l', barX + barW, barY + barH,
+                                         'c',
+                                         's', co.strokeStyle,
+                                         'f', prevFillStyle,
+                                         'f', 'rgba(0,0,0,0.25)'
+                                        ]
+                                    );
+                                }
+
+
+
+
+
+                                co.beginPath();
+                                co.strokeStyle = prevStrokeStyle;
+                                co.fillStyle   = prevFillStyle;
+                            }
+
+
+
+
+
+
                         }
                         
                         startY += vmargin;
@@ -1228,15 +1607,49 @@
     
             co.stroke();
             co.fill();
-    
-    
+            
+            // Under certain circumstances we can cover the shadow
+            // overspill with a white rectangle
+            if (prop['chart,yaxispos'] === 'right') {
+                pa2(co, 'cr % % % %',
+                    ca.width - this.gutterRight + prop['chart.variant.threed.offsetx'],
+                    '0',
+                    this.gutterRight,
+                    ca.height
+                );
+            }
+
+
+
+
+
+
+            // Draw the 3d axes AGAIN if the Y axis is on the right
+            if (   prop['chart.yaxispos'] === 'right'
+                && prop['chart.variant'] === '3d'
+               ) {
+                RG.draw3DYAxis(this);
+            }
     
             /**
             * Now the bars are stroke()ed, turn off the shadow
             */
-            RG.NoShadow(this);
+            RG.noShadow(this);
             
-            this.RedrawBars();
+            
+            //
+            // Reverse the coords arrays as the bars are drawn from the borrom up now
+            //
+            this.coords  = RG.arrayReverse(this.coords);
+            
+            if (prop['chart.grouping'] === 'grouped') {
+                for (var i=0; i<this.coords2.length; ++i) {
+                    this.coords2[i] = RG.arrayReverse(this.coords2[i]);
+                }
+            }
+            
+
+            this.redrawBars();
         };
 
 
@@ -1254,9 +1667,9 @@
     
             var coords = this.coords;
     
-            var font   = prop['chart.text.font'];
-            var size   = prop['chart.text.size'];
-            var color  = prop['chart.text.color'];
+            var font   = prop['chart.text.font'],
+                size   = prop['chart.text.size'],
+                color  = prop['chart.text.color'];
     
             RG.noShadow(this);
             co.strokeStyle = prop['chart.strokestyle'];
@@ -1304,15 +1717,16 @@
                         halign = 'right';
                     }
 
-                    RG.Text2(this, {'font':font,
-                                        'size':size,
-                                        'x':x,
-                                        'y':y,
-                                        'text': text,
-                                        'valign':'center',
-                                        'halign': halign,
-                                        'tag': 'labels.above'
-                                       });
+                    RG.text2(this, {
+                          'font': font,
+                          'size': size,
+                             'x': x,
+                             'y': y,
+                          'text': text,
+                        'valign': 'center',
+                        'halign': halign,
+                           'tag': 'labels.above'
+                    });
                 }
             }
         };
@@ -1329,34 +1743,40 @@
         this.getShape =
         this.getBar = function (e)
         {
-            var mouseCoords = RG.getMouseXY(e);
+            var mouseXY = RG.getMouseXY(e);
     
             /**
             * Loop through the bars determining if the mouse is over a bar
             */
             for (var i=0,len=this.coords.length; i<len; i++) {
     
-                var mouseX = mouseCoords[0];  // In relation to the canvas
-                var mouseY = mouseCoords[1];  // In relation to the canvas
-                var left   = this.coords[i][0];
-                var top    = this.coords[i][1];
-                var width  = this.coords[i][2];
-                var height = this.coords[i][3];
-                var idx    = i;
-    
-                if (mouseX >= left && mouseX <= (left + width) && mouseY >= top && mouseY <= (top + height) ) {
+                var mouseX = mouseXY[0],  // In relation to the canvas
+                    mouseY = mouseXY[1],  // In relation to the canvas
+                    left   = this.coords[i][0],
+                    top    = this.coords[i][1],
+                    width  = this.coords[i][2],
+                    height = this.coords[i][3],
+                    idx    = i;
+
+
+
+                // Recreate the path/rectangle so that it can be tested
+                //  ** DO NOT STROKE OR FILL IT **
+                pa(co,['b','r',left,top,width,height]);
+
+                if (co.isPointInPath(mouseX, mouseY)) {
     
                     var tooltip = RG.parseTooltipText(prop['chart.tooltips'], i);
-    
+
                     return {
-                            0: this,   'object': this,
-                            1: left,   'x': left,
-                            2: top,    'y': top,
-                            3: width,  'width': width,
-                            4: height, 'height': height,
-                            5: idx,    'index': idx,
-                                       'tooltip': tooltip
-                           };
+                        0: this,   'object': this,
+                        1: left,   'x': left,
+                        2: top,    'y': top,
+                        3: width,  'width': width,
+                        4: height, 'height': height,
+                        5: idx,    'index': idx,
+                        'tooltip': tooltip
+                    };
                 }
             }
         };
@@ -1438,7 +1858,15 @@
         this.getObjectByXY = function (e)
         {
             var mouseXY = RG.getMouseXY(e);
-    
+
+            // Adjust the mouse Y coordinate for when the bar chart is
+            // a 3D variant
+            if (prop['chart.variant'] === '3d') {
+                var adjustment = prop['chart.variant.threed.angle'] * mouseXY[0];
+                mouseXY[1] -= adjustment;
+            }
+
+
             if (
                    mouseXY[0] > this.gutterLeft
                 && mouseXY[0] < (ca.width - this.gutterRight)
@@ -1463,19 +1891,28 @@
         */
         this.positionTooltip = function (obj, x, y, tooltip, idx)
         {
-            var coordX     = obj.coords[tooltip.__index__][0];
-            var coordY     = obj.coords[tooltip.__index__][1];
-            var coordW     = obj.coords[tooltip.__index__][2];
-            var coordH     = obj.coords[tooltip.__index__][3];
-            var canvasXY   = RG.getCanvasXY(obj.canvas);
-            var gutterLeft = obj.gutterLeft;
-            var gutterTop  = obj.gutterTop;
-            var width      = tooltip.offsetWidth;
-            var height     = tooltip.offsetHeight;
-    
+            var coordX     = obj.coords[tooltip.__index__][0],
+                coordY     = obj.coords[tooltip.__index__][1],
+                coordW     = obj.coords[tooltip.__index__][2],
+                coordH     = obj.coords[tooltip.__index__][3],
+                canvasXY   = RG.getCanvasXY(obj.canvas),
+                gutterLeft = obj.gutterLeft,
+                gutterTop  = obj.gutterTop,
+                width      = tooltip.offsetWidth,
+                height     = tooltip.offsetHeight,
+                mouseXY    = RG.getMouseXY(window.event);
+
+            // If the chart is a 3D version the tooltip Y position needs this
+            // adjustment
+            if (prop['chart.variant'] === '3d' && coordW) {
+                var adjustment = (prop['chart.variant.threed.angle'] * ((coordX + coordW) / 2));
+            }
+
+
+
             // Set the top position
             tooltip.style.left = 0;
-            tooltip.style.top  = canvasXY[1] + coordY + (coordH / 2) - height + 'px';
+            tooltip.style.top  = canvasXY[1] + coordY - height  + 5 + (adjustment || 0) + 'px';
             
             // By default any overflow is hidden
             tooltip.style.overflow = '';
@@ -1705,36 +2142,36 @@
         */
         this.grow = function ()
         {
-            var obj      = this;
-            var opt      = arguments[0] || {};
-            var frames   = opt.frames || 30;
-            var frame    = 0;
-            var callback = arguments[1] || function () {};
+            var obj      = this,
+                opt      = arguments[0] || {},
+                frames   = opt.frames || 30,
+                frame    = 0,
+                callback = arguments[1] || function () {};
 
 
             // Save the data
-            obj.original_data = RG.array_clone(obj.data);
+            obj.original_data = RG.arrayClone(obj.data);
 
 
             // Stop the scale from changing by setting chart.ymax (if it's not already set)
-            if (obj.Get('chart.xmax') == 0) {
+            if (prop['chart.xmax'] == 0) {
 
                 var xmax = 0;
     
                 for (var i=0; i<obj.data.length; ++i) {
-                    if (RG.is_array(obj.data[i]) && obj.Get('chart.grouping') == 'stacked') {
-                        xmax = Math.max(xmax, RG.array_sum(obj.data[i]));
-                    } else if (RG.is_array(obj.data[i]) && obj.Get('chart.grouping') == 'grouped') {
-                        xmax = ma.max(xmax, RG.array_max(obj.data[i]));
+                    if (RG.isArray(obj.data[i]) && prop['chart.grouping'] == 'stacked') {
+                        xmax = ma.max(xmax, RG.arraySum(obj.data[i]));
+                    } else if (RG.isArray(obj.data[i]) && prop['chart.grouping'] == 'grouped') {
+                        xmax = ma.max(xmax, RG.arrayMax(obj.data[i]));
                     } else {
-                        xmax = ma.max(xmax, RG.array_max(obj.data[i]));
+                        xmax = ma.max(xmax, ma.abs(RG.arrayMax(obj.data[i])));
                     }
                 }
-    
+
                 var scale2 = RG.getScale2(obj, {'max':xmax});
                 obj.Set('chart.xmax', scale2.max);
             }
-    
+
             function iterator ()
             {
                 // Alter the Bar chart data depending on the frame
@@ -1743,12 +2180,12 @@
                     // This stops the animation from being completely linear
                     var easingFactor = RG.Effects.getEasingMultiplier(frames, frame);
     
-                    if (typeof obj.data[j] === 'object') {
+                    if (typeof obj.data[j] === 'object' && obj.data[j]) {
                         for (var k=0,len2=obj.data[j].length; k<len2; ++k) {
-                            obj.data[j][k] = obj.original_data[j][k] * easingFactor;
+                            obj.data[j][k] = RG.isNull(obj.data[j][k]) ? null : obj.original_data[j][k] * easingFactor;
                         }
                     } else {
-                        obj.data[j] = obj.original_data[j] * easingFactor;
+                        obj.data[j] = RG.isNull(obj.data[j]) ? null : obj.original_data[j] * easingFactor;
                     }
                 }
     
@@ -1771,7 +2208,96 @@
 
 
 
-        RG.att(ca);
+
+        /**
+        * (new) Bar chart Wave effect. This is a rewrite that should be smoother
+        * because it just uses a single loop and not setTimeout
+        * 
+        * @param object   OPTIONAL An object map of options. You specify 'frames' here to give the number of frames in the effect
+        * @param function OPTIONAL A function that will be called when the effect is complete
+        */
+        this.wave = function ()
+        {
+            var obj = this,
+                opt = arguments[0] || {};
+                opt.frames      = opt.frames || 60;
+                opt.startFrames = [];
+                opt.counters    = [];
+
+            var framesperbar   = opt.frames / 3,
+                frame          = -1,
+                callback       = arguments[1] || function () {},
+                original       = RG.arrayClone(obj.data);
+
+            for (var i=0,len=obj.data.length; i<len; i+=1) {
+                opt.startFrames[i] = ((opt.frames / 2) / (obj.data.length - 1)) * i;
+                
+                if (typeof obj.data[i] === 'object' && obj.data[i]) {
+                    opt.counters[i] = [];
+                    for (var j=0; j<obj.data[i].length; j++) {
+                        opt.counters[i][j] = 0;
+                    }
+                } else {
+                    opt.counters[i]    = 0;
+                }
+            }
+
+            /**
+            * This stops the chart from jumping
+            */
+            obj.draw();
+            obj.Set('xmax', obj.scale2.max);
+            RG.clear(obj.canvas);
+
+            function iterator ()
+            {
+                ++frame;
+
+                for (var i=0,len=obj.data.length; i<len; i+=1) {
+                        if (frame > opt.startFrames[i]) {
+                            if (typeof obj.data[i] === 'number') {
+                                
+                                obj.data[i] = ma.min(
+                                    ma.abs(original[i]),
+                                    ma.abs(original[i] * ( (opt.counters[i]++) / framesperbar))
+                                );
+                                
+                                // Make the number negative if the original was
+                                if (original[i] < 0) {
+                                    obj.data[i] *= -1;
+                                }
+                            } else if (!RG.isNull(obj.data[i])) {
+                                for (var j=0,len2=obj.data[i].length; j<len2; j+=1) {
+                                    
+                                    obj.data[i][j] = ma.min(
+                                        ma.abs(original[i][j]),
+                                        ma.abs(original[i][j] * ( (opt.counters[i][j]++) / framesperbar))
+                                    );
+
+                                    // Make the number negative if the original was
+                                    if (original[i][j] < 0) {
+                                        obj.data[i][j] *= -1;
+                                    }
+                                }
+                            }
+                        } else {
+                            obj.data[i] = typeof obj.data[i] === 'object' && obj.data[i] ? RG.arrayPad([], obj.data[i].length, 0) : (RG.isNull(obj.data[i]) ? null : 0);
+                        }
+                }
+
+
+                if (frame >= opt.frames) {
+                    callback(obj);
+                } else {
+                    RG.redrawCanvas(obj.canvas);
+                    RG.Effects.updateCanvas(iterator);
+                }
+            }
+            
+            iterator();
+
+            return this;
+        };
 
 
 

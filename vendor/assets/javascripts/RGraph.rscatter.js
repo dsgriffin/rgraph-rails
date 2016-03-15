@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -201,7 +201,16 @@
             'chart.segment.highlight':       false,
             'chart.segment.highlight.count': null,
             'chart.segment.highlight.fill':  'rgba(0,255,0,0.5)',
-            'chart.segment.highlight.stroke':'rgba(0,0,0,0)'
+            'chart.segment.highlight.stroke':'rgba(0,0,0,0)',
+            'chart.line':                    false,
+            'chart.line.close':              false,
+            'chart.line.linewidth':          1,
+            'chart.line.colors':             ['black'],
+            'chart.line.shadow':             false,
+            'chart.line.shadow.color':       'black',
+            'chart.line.shadow.blur':        2,
+            'chart.line.shadow.offsetx':     3,
+            'chart.line.shadow.offsety':     3
         }
         
 
@@ -741,35 +750,108 @@
                 var data              = this.data[dataset];
                 this.coords2[dataset] = [];
 
-                for (var i=0; i<data.length; ++i) {
-        
-                    var d1 = data[i][0];
-                    var d2 = data[i][1];
-                    var a   = d1 / (180 / RG.PI); // RADIANS
-                    var r   = ( (d2 - prop['chart.ymin']) / (this.scale2.max - this.scale2.min) ) * this.radius;
-                    var x   = Math.sin(a) * r;
-                    var y   = Math.cos(a) * r;
-                    var color = data[i][2] ? data[i][2] : prop['chart.colors.default'];
-                    var tooltip = data[i][3] ? data[i][3] : null;
-        
-                    if (tooltip && String(tooltip).length) {
-                        this.hasTooltips = true;
+                var drawPoints = function (obj)
+                {
+                    for (var i=0; i<data.length; ++i) {
+            
+                        var d1 = data[i][0],
+                            d2 = data[i][1],
+                            a   = d1 / (180 / RG.PI), // RADIANS
+                            r   = ( (d2 - prop['chart.ymin']) / (obj.scale2.max - obj.scale2.min) ) * obj.radius,
+                            x   = Math.sin(a) * r,
+                            y   = Math.cos(a) * r,
+                            color = data[i][2] ? data[i][2] : prop['chart.colors.default'],
+                            tooltip = data[i][3] ? data[i][3] : null
+            
+                        if (tooltip && String(tooltip).length) {
+                            obj.hasTooltips = true;
+                        }
+            
+                        /**
+                        * Account for the correct quadrant
+                        */
+                        x = x + obj.centerx;
+                        y = obj.centery - y;
+            
+            
+                        obj.drawTick(x, y, color);
+                        
+                        // Populate the coords array with the coordinates and the tooltip
+                        obj.coords.push([x, y, color, tooltip]);
+                        obj.coords2[dataset].push([x, y, color, tooltip]);
                     }
-        
-                    /**
-                    * Account for the correct quadrant
-                    */
-                    x = x + this.centerx;
-                    y = this.centery - y;
-        
-        
-                    this.DrawTick(x, y, color);
+                }
+                
+                drawPoints(this);
+
+                if (prop['chart.line']) {
+                    this.drawLine(dataset);
+                }
+
+                drawPoints(this);
+            }
+        };
+
+
+
+
+        /*
+        * Draws a connecting line through the points if requested
+        * 
+        * @param object opt The options to the line
+        */
+        this.drawLine = function (idx)
+        {
+            var opt = {
+              dataset: idx,
+               coords: this.coords2[idx],
+                color: prop['chart.line.colors'][idx],
+               shadow: prop['chart.line.shadow'],
+          shadowColor: prop['chart.line.shadow.color'],
+        shadowOffsetX: prop['chart.line.shadow.offsetx'],
+        shadowOffsetY: prop['chart.line.shadow.offsety'],
+           shadowBlur: prop['chart.line.shadow.blur'],
+            linewidth: prop['chart.line.linewidth']
+            };
+
+            co.beginPath();
+
+            co.strokeStyle = this.parseSingleColorForGradient(opt.color);
+              co.lineWidth = typeof prop['chart.line.linewidth'] === 'object' ? prop['chart.line.linewidth'][idx] : prop['chart.line.linewidth'];
+                co.lineCap = 'round';
+
+            if (opt.shadow) {
+                RG.setShadow(
+                    this,
+                    opt.shadowColor,
+                    opt.shadowOffsetX,
+                    opt.shadowOffsetY,
+                    opt.shadowBlur
+                );
+            }
+
+            for (var i=0; i<this.coords2[idx].length; ++i) {
+                if (i === 0) {
+                    co.moveTo(this.coords2[idx][i][0], this.coords2[idx][i][1]);
                     
-                    // Populate the coords array with the coordinates and the tooltip
-                    this.coords.push([x, y, color, tooltip]);
-                    this.coords2[dataset].push([x, y, color, tooltip]);
+                    var startCoords = RG.arrayClone(this.coords2[idx]);
+
+                } else {
+                    co.lineTo(this.coords2[idx][i][0], this.coords2[idx][i][1]);
                 }
             }
+            
+            // Draw the line back to the start?
+            if (
+                   (typeof prop['chart.line.close'] === 'boolean' && prop['chart.line.close'])
+                || (typeof prop['chart.line.close'] === 'object' && prop['chart.line.close'][idx])
+                ) {
+                co.lineTo(this.coords2[idx][0][0], this.coords2[idx][0][1]);
+            }
+            
+            co.stroke();
+            
+            RG.noShadow(this);
         };
 
 
@@ -908,6 +990,10 @@
             co.strokeStyle = color;
             co.fillStyle   = color;
     
+            // Set the linewidth for the tickmark to 1
+            var prevLinewidth = co.lineWidth;
+            co.lineWidth = 1;
+    
             // Cross
             if (tickmarks == 'cross') {
     
@@ -958,6 +1044,9 @@
                     co.lineTo(x + ticksize, y);
                 co.stroke();
             }
+            
+            
+            co.lineWidth = prevLinewidth;
         };
 
 

@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -266,6 +266,7 @@
             'chart.adjustable':             false,
             'chart.noredraw':               false,
             'chart.outofbounds':            false,
+            'chart.outofbounds.clip':       false,
             'chart.chromefix':              true,
             'chart.animation.factor':       1,
             'chart.animation.unfold.x':     false,
@@ -275,7 +276,15 @@
             'chart.curvy':                    false,
             'chart.line.visible':             true,
             'chart.events.click':             null,
-            'chart.events.mousemove':         null
+            'chart.events.mousemove':         null,
+            'chart.errorbars':              false,
+            'chart.errorbars.color':        'black',
+            'chart.errorbars.capped':        true,
+            'chart.errorbars.capped.width':   12,
+            'chart.errorbars.linewidth':     1,
+            'chart.combinedchart.effect':     null,
+            'chart.combinedchart.effect.options':  null,
+            'chart.combinedchart.effect.callback': null
         }
 
         /**
@@ -831,16 +840,39 @@
                     } else {
                         var tickmarks = null;
                     }
-        
 
-                    this.DrawLine(this.data[i],
-                                  prop['chart.colors'][j],
-                                  fill,
-                                  this.GetLineWidth(j),
-                                   tickmarks,
-                                   i);
-        
+                    //
+                    // Draw the line, accounting for the outofboundsClip option
+                    //
+                    if (prop['chart.outofbounds.clip']) {
+                        pa2(
+                            co,
+                            'sa b r % % % % cl b',
+                            0,
+                            this.gutterTop,
+                            ca.width,
+                            ca.height - this.gutterTop - this.gutterBottom
+                        );
+                    }
+                        this.drawLine(
+                            this.data[i],
+                            prop['chart.colors'][j],
+                            fill,
+                            this.getLineWidth(j),
+                            tickmarks,
+                            i
+                        );
+                    if (prop['chart.outofbounds.clip']) {
+                        co.restore();
+                    }
+            
                     co.stroke();
+        
+/**
+* Draw errorbars
+* 
+* ** This is now done in the redrawLine function **
+*/
                 }
         
             /**
@@ -869,7 +901,7 @@
                     co.stroke();
                     // No fill!
                 }
-        
+
                 //Redraw the tickmarks
                 if (prop['chart.tickmarks']) {
         
@@ -922,6 +954,10 @@
 
                    co.stroke();
                 }
+
+
+
+
 
 
 
@@ -1098,11 +1134,6 @@
         this.drawAxes =
         this.DrawAxes = function ()
         {
-            //var RG   = RGraph;
-            //var ca   = this.canvas;
-            //var co   = this.context;
-            //var prop = this.properties;
-    
             // Don't draw the axes?
             if (prop['chart.noaxes']) {
                 return;
@@ -1112,7 +1143,8 @@
             RG.noShadow(this);
     
             co.lineWidth   = prop['chart.axis.linewidth'] + 0.001;
-            co.lineCap     = 'butt';
+            co.lineCap     = 'square';
+            co.lineJoin = 'miter';
             co.strokeStyle = prop['chart.axis.color'];
             co.beginPath();
 
@@ -2050,15 +2082,32 @@
                 co.beginPath();
                 co.rect(0,0,ca.width * prop['chart.animation.trace.clip'],ca.height);
                 co.clip();
-    
+
+
+
+
+
+                //
+                // Draw errorbars
+                //
+                if (typeof prop['chart.errorbars'] !== 'null') {
+                    this.drawErrorbars();
+                }
+
+
+
+
                 // Now redraw the lines with the correct line width
                 this.SetShadow(index);
                 this.RedrawLine(lineCoords, color, linewidth, index);
                 co.stroke();
                 RG.NoShadow(this);
-    
-    
-    
+
+
+
+
+
+
     
             // Draw the tickmarks
                 for (var i=0; i<lineCoords.length; ++i) {
@@ -2694,15 +2743,15 @@
         this.getShape =
         this.getPoint = function (e)
         {
-            var obj  = this;
-            var RG   = RGraph;
-            var ca   = canvas  = e.target;
-            var co   = context = this.context;
-            var prop = this.properties;
+            var obj  = this,
+                RG   = RGraph,
+                ca   = canvas  = e.target,
+                co   = context = this.context,
+                prop = this.properties;
     
-            var mouseXY = RG.getMouseXY(e);
-            var mouseX  = mouseXY[0];
-            var mouseY  = mouseXY[1];
+            var mouseXY = RG.getMouseXY(e),
+                mouseX  = mouseXY[0],
+                mouseY  = mouseXY[1];
             
             // This facilitates you being able to pass in the bar object as a parameter instead of
             // the function getting it from the object
@@ -3027,7 +3076,7 @@
     
                 y = ca.height - this.gutterBottom - y;
             }
-            
+
             return y;
         };
 
@@ -3424,6 +3473,169 @@
 
 
 
+        //
+        // Draws error-bars for the Bar and Line charts
+        //
+        this.drawErrorbars = function ()
+        {
+            // Save the state of the canvas so that it can be restored at the end
+            co.save();
+
+                RG.noShadow(this);
+
+                var coords = this.coords,
+                         x = 0,
+                 errorbars = prop['chart.errorbars'],
+                    length = 0;
+
+                // If not capped set the width of the cap to zero
+                if (!prop['chart.errorbars.capped']) {
+                    prop['chart.errorbars.capped.width'] = 0.001;
+                    halfwidth = 0.0005;
+                }
+
+                // Set the linewidth
+                co.lineWidth = prop['chart.errorbars.linewidth'];
+    
+    
+    
+    
+                for (var i=0; i<coords.length; ++i) {
+                
+                    var halfwidth = prop['chart.errorbars.capped.width'] / 2 || 5,
+                            color = prop['chart.errorbars.color'] || 'black';
+
+                    // Set the perbar linewidth if the fourth option in the array
+                    // is specified
+                    if (errorbars[i] && typeof errorbars[i][3] === 'number') {
+                        co.lineWidth = errorbars[i][3];
+                    } else if (typeof prop['chart.errorbars.linewidth'] === 'number') {
+                        co.lineWidth = prop['chart.errorbars.linewidth'];
+                    } else {
+                        co.lineWidth = 1;
+                    }
+
+    
+    
+                    // Calulate the pixel size
+                    if (typeof errorbars === 'number' || typeof errorbars[i] === 'number') {
+
+                        if (typeof errorbars === 'number') {
+                            var positiveLength = this.getYCoord(this.min) - this.getYCoord(this.min + errorbars),
+                                negativeLength = positiveLength;
+                        } else {
+                            var positiveLength = this.getYCoord(this.min) - this.getYCoord(this.min + errorbars[i]),
+                                negativeLength = positiveLength;
+                        }
+
+                        if (positiveLength || negativeLength) {
+
+                            pa2(
+                                co,
+                                'lj miter lc square b m % % l % % m % % l % % l % % m % % l % % s %',
+                                coords[i][0] - halfwidth,
+                                coords[i][1] + negativeLength,
+                                coords[i][0] + halfwidth,
+                                coords[i][1] + negativeLength,
+                                coords[i][0],
+                                coords[i][1] + negativeLength,
+                                coords[i][0],
+                                coords[i][1] - positiveLength,
+                                coords[i][0] - halfwidth,
+                                coords[i][1] - positiveLength,
+                                coords[i][0],
+                                coords[i][1] - positiveLength,
+                                coords[i][0] + halfwidth,
+                                coords[i][1] - positiveLength,
+                                color
+                            );
+
+                            pa2(
+                                co,
+                                'lj miter lc square b m % % l % % s %',
+                                coords[i][0] - halfwidth,
+                                coords[i][1] + negativeLength,
+                                coords[i][0] + halfwidth,
+                                coords[i][1] + negativeLength,
+                                color
+                            );
+                        }
+
+
+
+                    } else if (typeof errorbars[i] === 'object' && !RG.isNull(errorbars[i])) {
+
+                        var positiveLength = this.getYCoord(this.min) - this.getYCoord(this.min + errorbars[i][0]),
+                            negativeLength = this.getYCoord(this.min) - this.getYCoord(this.min + errorbars[i][1]);
+
+
+                        // Color
+                        if (typeof errorbars[i][2] === 'string') {
+                            color = errorbars[i][2];
+                        }
+
+                        // Cap width
+                        halfwidth = typeof errorbars[i][4] === 'number' ? errorbars[i][4] / 2 : halfwidth;
+    
+    
+                        // Set the linewidth
+                        if (typeof errorbars[i] === 'object' && typeof errorbars[i][3] === 'number') {
+                            co.lineWidth = errorbars[i][3];
+                        } else if (typeof prop['chart.errorbars.linewidth'] === 'number') {
+                            co.lineWidth = prop['chart.errorbars.linewidth'];
+                        } else {
+                            co.lineWidth = 1;
+                        }
+
+
+                        if (!RG.isNull(errorbars[i][0])) {
+
+                            pa2(
+                                co,
+                                'lc square b  m % % l % % l % % m % % l % % s %',
+                                coords[i][0],
+                                coords[i][1],
+                                coords[i][0],
+                                coords[i][1] - positiveLength,
+                                coords[i][0] - halfwidth,
+                                ma.round(coords[i][1] - positiveLength),
+                                coords[i][0],
+                                ma.round(coords[i][1] - positiveLength),
+                                coords[i][0] + halfwidth,
+                                ma.round(coords[i][1] - positiveLength),
+                                color
+                            );
+                        }
+    
+                        if (typeof errorbars[i][1] === 'number') {
+
+                            var negativeLength = ma.abs(this.getYCoord(errorbars[i][1]) - this.getYCoord(0));
+    
+                            pa2(
+                                co,
+                                'b m % % l % % l % % m % % l % % s %',
+                                coords[i][0],
+                                coords[i][1],
+                                coords[i][0],
+                                coords[i][1] + negativeLength,
+                                coords[i][0] - halfwidth,
+                                ma.round(coords[i][1] + negativeLength),
+                                coords[i][0],
+                                ma.round(coords[i][1] + negativeLength),
+                                coords[i][0] + halfwidth,
+                                ma.round(coords[i][1] + negativeLength),
+                                color
+                            );
+                        }
+                    }
+                }
+
+            co.restore();
+        };
+
+
+
+
         /**
         * Trace
         * 
@@ -3697,6 +3909,7 @@
             function iterator ()
             {
                 RG.clear(obj.canvas);
+
                 RG.redrawCanvas(obj.canvas);
 
                 if (frame++ < frames) {
@@ -3829,6 +4042,8 @@
 
             RG.clear(obj.canvas);
             obj.trace2({frames: frames / 2}, unfoldCallback);
+            
+            return obj;
         };
 
 

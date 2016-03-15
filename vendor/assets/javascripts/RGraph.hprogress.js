@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -27,26 +27,24 @@
         /**
         * Allow for object config style
         */
-        if (   typeof conf === 'object'
-            && typeof conf.min === 'number'
-            && typeof conf.max === 'number'
+        if (   typeof conf       === 'object'
             && typeof conf.value !== 'undefined'
-            && typeof conf.id === 'string') {
+            && typeof conf.id    === 'string') {
 
-            var id                        = conf.id
-            var canvas                    = document.getElementById(id);
-            var min                       = conf.min;
-            var max                       = conf.max;
-            var value                     = conf.value;
-            var parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
+            var id                        = conf.id,
+                canvas                    = document.getElementById(id),
+                min                       = conf.min,
+                max                       = conf.max,
+                value                     = conf.value,
+                parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
         
         } else {
         
-            var id     = conf;
-            var canvas = document.getElementById(id);
-            var min    = arguments[1];
-            var max    = arguments[2];
-            var value  = arguments[3];
+            var id     = conf,
+                canvas = document.getElementById(id),
+                min    = arguments[1],
+                max    = arguments[2],
+                value  = arguments[3];
         }
 
 
@@ -56,8 +54,8 @@
         this.context           = this.canvas.getContext('2d');
         this.canvas.__object__ = this;
 
-        this.min               = min;
-        this.max               = max;
+        this.min               = RGraph.stringsToNumbers(min);
+        this.max               = RGraph.stringsToNumbers(max);
         this.value             = RGraph.stringsToNumbers(value);
         this.type              = 'hprogress';
         this.coords            = [];
@@ -319,7 +317,7 @@
             /**
             * Fire the onbeforedraw event
             */
-            RG.FireCustomEvent(this, 'onbeforedraw');
+            RG.fireCustomEvent(this, 'onbeforedraw');
     
     
     
@@ -430,7 +428,7 @@
         this.exec = function (func)
         {
             func(this);
-            
+
             return this;
         };
 
@@ -446,19 +444,18 @@
             /**
             * First get the scale
             */
-    
             this.scale2 = RG.getScale2(this, {
-                                            'max':this.max,
-                                            'min':this.min,
-                                            'strict':true,
-                                            'scale.thousand':prop['chart.scale.thousand'],
-                                            'scale.point':prop['chart.scale.point'],
-                                            'scale.decimals':prop['chart.scale.decimals'],
-                                            'ylabels.count':prop['chart.labels.count'],
-                                            'scale.round':prop['chart.scale.round'],
-                                            'units.pre': prop['chart.units.pre'],
-                                            'units.post': prop['chart.units.post']
-                                           });
+                'max':this.max,
+                'min':this.min,
+                'strict':true,
+                'scale.thousand':prop['chart.scale.thousand'],
+                'scale.point':prop['chart.scale.point'],
+                'scale.decimals':prop['chart.scale.decimals'],
+                'ylabels.count':prop['chart.labels.count'],
+                'scale.round':prop['chart.scale.round'],
+                'units.pre': prop['chart.units.pre'],
+                'units.post': prop['chart.units.post']
+            });
 
             // Set a shadow if requested
             if (prop['chart.shadow']) {

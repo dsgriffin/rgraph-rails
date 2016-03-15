@@ -1,4 +1,4 @@
-// version: 2015-11-02
+// version: 2016-02-06
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -28,8 +28,6 @@
         * Allow for object config style
         */
         if (   typeof conf === 'object'
-            && typeof conf.min === 'number'
-            && typeof conf.max === 'number'
             && typeof conf.id === 'string') {
 
             var id                        = conf.id
@@ -54,8 +52,8 @@
         this.context           = this.canvas.getContext ? this.canvas.getContext("2d", {alpha: (typeof id === 'object' && id.alpha === false) ? false : true}) : null;
         this.canvas.__object__ = this;
         this.type              = 'gauge';
-        this.min               = min;
-        this.max               = max;
+        this.min               = RGraph.stringsToNumbers(min);
+        this.max               = RGraph.stringsToNumbers(max);
         this.value             = RGraph.stringsToNumbers(value);
         this.isRGraph          = true;
         this.currentValue      = null;

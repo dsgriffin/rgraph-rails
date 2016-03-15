@@ -10,7 +10,7 @@ Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asse
 Include the gem in your application's Gemfile:
 
 ```ruby
-gem 'rgraph-rails', '~> 1.0'
+gem 'rgraph-rails', '~> 1.0.4'
 ```
 
 And then execute:

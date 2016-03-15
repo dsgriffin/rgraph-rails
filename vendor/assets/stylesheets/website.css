@@ -35,7 +35,7 @@
     
     footer div#shareLinks {
         position: fixed;
-        width: 390px;
+        width: 240px;
         height: 30px;
         right: 180px;
         top: 0;
@@ -63,7 +63,11 @@
         padding-top: 10px;
         border-radius: 10px;
         text-align: left;
-        min-height: 950px;
+        
+        /*
+        * Commented as it causes an issue in IE9
+        min-height: 550px;
+        */
     }
     
     h1 {
@@ -399,4 +403,30 @@
         color: #aaf;
         background-color: rgba(255,255,255,0.75);
         padding: 5px;
+    }
+    
+    /**
+    * Forum styles
+    * 
+    * This one hides the small screen message list
+    */
+    div#forumMonthListSmallScreenMonthList,
+    div#forumMessageListSmallScreen,
+    p#forumMessageListSmallScreen {
+        display: none;
+    }
+    
+    div#forumMonthListSmallScreenMonthList a:active {
+        font-weight: bold;
+    }
+    
+    /*
+     * The front page demo links
+     */
+    ul#news img {
+        transition: transform .25s;
+    }
+
+    ul#news img:hover {
+        transform: scale(1.1);
     }
