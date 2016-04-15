@@ -60,7 +60,7 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 ## Deployment
 
-Automatically on tagged release. Reading: https://docs.travis-ci.com/user/deployment/rubygems/
+Automatically on tagged release to master. Reading: https://docs.travis-ci.com/user/deployment/rubygems/
 
 ## Issues
 
