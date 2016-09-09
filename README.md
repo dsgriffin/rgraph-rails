@@ -1,4 +1,4 @@
-# rgraph-rails
+![Logo](http://dsgriffin.github.io/images/logos/rgraph-rails.png)
 
 [![Build Status](https://travis-ci.org/dsgriffin/rgraph-rails.svg?branch=master)](https://travis-ci.org/dsgriffin/rgraph-rails)
 [![Gem Version](https://badge.fury.io/rb/rgraph-rails.svg)](https://badge.fury.io/rb/rgraph-rails)
