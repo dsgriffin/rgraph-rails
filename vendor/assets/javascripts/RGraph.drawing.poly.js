@@ -16,9 +16,8 @@ prop[name]=value;return this;};this.get=this.Get=function(name)
 while(name.match(/([A-Z])/)){name=name.replace(/([A-Z])/,'.'+RegExp.$1.toLowerCase());}
 return prop[name.toLowerCase()];};this.draw=this.Draw=function()
 {RG.FireCustomEvent(this,'onbeforedraw');if(!this.colorsParsed){this.parseColors();this.colorsParsed=true;}
-this.coordsText=[];var obj=this;pa2(co,['b','fu',function(obj){if(prop['chart.shadow'])
-{co.shadowColor=prop['chart.shadow.color'];co.shadowOffsetX=prop['chart.shadow.offsetx'];co.shadowOffsetY=prop['chart.shadow.offsety'];co.shadowBlur=prop['chart.shadow.blur'];}},'fu',function(obj)
-{co.strokeStyle=prop['chart.strokestyle'];co.fillStyle=prop['chart.fillstyle'];obj.DrawPoly();},'lw',prop['chart.linewidth'],'f',prop['chart.fillstyle'],'fu',function()
+this.coordsText=[];var obj=this;pa2(co,['b','fu',function(obj){if(prop['chart.shadow']){co.shadowColor=prop['chart.shadow.color'];co.shadowOffsetX=prop['chart.shadow.offsetx'];co.shadowOffsetY=prop['chart.shadow.offsety'];co.shadowBlur=prop['chart.shadow.blur'];}},'fu',function(obj)
+{co.strokeStyle=prop['chart.strokestyle'];co.fillStyle=prop['chart.fillstyle'];obj.drawPoly();},'lw',prop['chart.linewidth'],'f',prop['chart.fillstyle'],'fu',function()
 {RG.NoShadow(obj);},'s',prop['chart.strokestyle']]);RG.NoShadow(this)
 RG.InstallEventListeners(this);if(this.firstDraw){RG.fireCustomEvent(this,'onfirstdraw');this.firstDraw=false;this.firstDrawFunc();}
 RG.FireCustomEvent(this,'ondraw');return this;};this.exec=function(func)
