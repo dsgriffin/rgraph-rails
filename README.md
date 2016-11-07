@@ -77,5 +77,5 @@ Bug reports and pull requests are welcome. This project is intended to be a safe
 
 ## License
 
-See `license.txt`
+MIT
 
