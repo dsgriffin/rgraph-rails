@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/dsgriffin/rgraph-rails.svg?branch=master)](https://travis-ci.org/dsgriffin/rgraph-rails)
 [![Gem Version](https://badge.fury.io/rb/rgraph-rails.svg)](https://badge.fury.io/rb/rgraph-rails)
-![](https://img.shields.io/badge/rgraph-4.58-red.svg)
+![](https://img.shields.io/badge/rgraph-4.60-red.svg)
 
 Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asset pipeline.
 
@@ -11,7 +11,7 @@ Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asse
 Include the gem in your application's Gemfile:
 
 ```ruby
-gem 'rgraph-rails', '~> 1.0.7'
+gem 'rgraph-rails', '~> 1.0.8'
 ```
 
 And then execute:

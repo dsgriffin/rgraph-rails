@@ -37,7 +37,6 @@
         this.numcols   = null;
         this.seperator = arguments[2] || ',';
         this.endofline = arguments[3] || /\r?\n/;
-        this.uid       = RGraph.createUID();
 
 
 
@@ -176,7 +175,7 @@
 
             } else {
 
-                RGraph.AJAX.getString(this.url, function (data)
+                RGraph.SVG.AJAX.getString(this.url, function (data)
                 {
                     data = data.replace(/(\r?\n)+$/, '');
 
@@ -217,6 +216,7 @@
                             // Assign the split-up-row back to the data array
                             obj.data[i] = row;
                         }
+
                     }
 
                     // Call the ready function straight away

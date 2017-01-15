@@ -129,7 +129,7 @@
             //
             // With jQuery...
             //
-            //$('body').append("<script src='" + url + "'></script>");
+            //jQuery('body').append("<script src='" + url + "'></script>");
             //
             // And without jQuery...
 
@@ -170,7 +170,7 @@
 
             // Trim the array if required
             if (opt.trim) {
-                row = RGraph.arrayTrim(row);
+                row = RGraph.SVG.arrayTrim(row);
             }
 
             return row;
@@ -206,7 +206,7 @@
 
             // Trim the array if required
             if (opt.trim) {
-                col = RGraph.arrayTrim(col);
+                col = RGraph.SVG.arrayTrim(col);
             }
 
             // Now account for the start index
@@ -332,7 +332,7 @@
                 if (arguments[1] && arguments[1].trim === false) {
                     // Nada
                 } else {
-                    cells = RGraph.arrayTrim(cells);
+                    cells = RGraph.SVG.arrayTrim(cells);
                 }
 
                 return cells;
