@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -65,7 +65,7 @@
     //
     RG.SVG.createSVG = function (opt)
     {
-        var container      = opt.container;
+        var container = opt.container;
 
         if (container.__svg__) {
             return container.__svg__;
@@ -75,12 +75,24 @@
             svg.setAttribute('style', 'top: 0; left: 0; position: absolute');
             svg.setAttribute('width', container.offsetWidth);
             svg.setAttribute('height', container.offsetHeight);
+            svg.setAttribute('version', '1.1');
             svg.setAttributeNS("http://www.w3.org/2000/xmlns/", 'xmlns', 'http://www.w3.org/2000/svg');
             svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
         container.appendChild(svg);
         
         container.__svg__        = svg;
         container.style.position = 'relative';
+
+        // Add the group tag to the SVG that contains all of the elements
+        var group = RG.SVG.create({
+            svg: svg,
+            type: 'g',
+            attr: {
+                className: 'all-elements'
+            }
+        });
+
+        container.__svg__.all = group;
 
         return svg;
     };
@@ -97,13 +109,16 @@
     //
     RG.SVG.createDefs = function (obj)
     {
-        var defs = RG.SVG.create({
-            svg: obj.svg,
-            type: 'defs'
-        });
+        if (!obj.svg.defs) {
 
-        obj.defs = defs;
-        
+            var defs = RG.SVG.create({
+                svg: obj.svg,
+                type: 'defs'
+            });
+    
+            obj.svg.defs = defs;
+        }
+
         return defs;
     };
 
@@ -133,7 +148,7 @@
                 if (o === 'className') {
                     name = 'class';
                 }
-                if (opt.type === 'a' && o === 'xlink:href') {
+                if ( (opt.type === 'a' || opt.type === 'image') && o === 'xlink:href') {
                     tag.setAttributeNS('http://www.w3.org/1999/xlink', o, String(opt.attr[o]));
                 } else {
                     tag.setAttribute(name, String(opt.attr[o]));
@@ -176,10 +191,11 @@
         // Draw the axis
         if (prop.xaxis) {
 
-            var y = obj.type === 'hbar' ? obj.height - prop.gutterBottom : obj.getYCoord(0);
+            var y = obj.type === 'hbar' ? obj.height - prop.gutterBottom : obj.getYCoord(obj.scale.min < 0 && obj.scale.max < 0 ? obj.scale.max : (obj.scale.min > 0 && obj.scale.max > 0 ? obj.scale.min : 0));
 
             var axis = RG.SVG.create({
                 svg: obj.svg,
+                parent: obj.svg.all,
                 type: 'path',
                 attr: {
                     d: 'M{1} {2} L{3} {4}'.format(
@@ -190,7 +206,9 @@
                     ),
                     fill: prop.xaxisColor,
                     stroke: prop.xaxisColor,
-                    'shape-rendering': "crispEdges"
+                    'stroke-width': typeof prop.xaxisLinewidth === 'number' ? prop.xaxisLinewidth : 1,
+                    'shape-rendering': 'crispEdges',
+                    'stroke-linecap': 'square'
                 }
             });
     
@@ -202,14 +220,23 @@
                     startY = (obj.height - prop.gutterBottom),
                     endY   = (obj.height - prop.gutterBottom) + prop.xaxisTickmarksLength;
             
-            // Line/Bar X axis
+            // Line/Bar/Waterfall/Scatter X axis
             } else {
                 var width  = obj.graphWidth / obj.data.length,
                     x      = prop.gutterLeft,
                     startY = obj.getYCoord(0) - (prop.yaxisMin < 0 ? prop.xaxisTickmarksLength : 0),
                     endY   = obj.getYCoord(0) + prop.xaxisTickmarksLength;
-            }
+                    
+                if (obj.scale.min < 0 && obj.scale.max <= 0) {
+                    startY = prop.gutterTop;
+                    endY   = prop.gutterTop - prop.xaxisTickmarksLength;
+                }
 
+                if (obj.scale.min > 0 && obj.scale.max > 0) {
+                    startY = obj.getYCoord(obj.scale.min);
+                    endY   = obj.getYCoord(obj.scale.min) + prop.xaxisTickmarksLength;
+                }
+            }
 
 
 
@@ -221,7 +248,7 @@
             // Draw the tickmarks
             if (prop.xaxisTickmarks) {
             
-                // TH HBar uses a scale
+                // The HBar uses a scale
                 if (prop.xaxisScale) {
 
                     for (var i=0; i<(obj.scale.numlabels + (prop.yaxis && prop.xaxisMin === 0 ? 0 : 1)); ++i) {
@@ -234,6 +261,7 @@
                     
                         RG.SVG.create({
                             svg: obj.svg,
+                            parent: obj.svg.all,
                             type: 'path',
                             attr: {
                                 d: 'M{1} {2} L{3} {4}'.format(
@@ -243,6 +271,7 @@
                                     endY
                                 ),
                                 stroke: prop.xaxisColor,
+                                'stroke-width': typeof prop.xaxisLinewidth === 'number' ? prop.xaxisLinewidth : 1,
                                 'shape-rendering': "crispEdges"
                             }
                         });
@@ -252,23 +281,25 @@
 
 
                 } else {
-                
+
                     // This style is used by Bar and Scatter charts
                     if (prop.xaxisLabelsPosition === 'section') {
-        
-                        for (var i=0; i<obj.data.length; ++i) {
-                        
-                            if (obj.type === 'bar') {
-                                var dataPoints = obj.data.length;
-                            } else if (obj.type === 'line'){
-                                var dataPoints = obj.data[0].length;
-                            }
-        
+
+                        if (obj.type === 'bar' || obj.type === 'waterfall') {
+                            var dataPoints = obj.data.length;
+                        } else if (obj.type === 'line'){
+                            var dataPoints = obj.data[0].length;
+                        } else if (obj.type === 'scatter') {
+                            var dataPoints = prop.xaxisLabels ? prop.xaxisLabels.length : 10;
+                        }
+
+                        for (var i=0; i<dataPoints; ++i) {
         
                             x = prop.gutterLeft + ((i+1) * (obj.graphWidth / dataPoints));
-        
+
                             RG.SVG.create({
                                 svg: obj.svg,
+                                parent: obj.svg.all,
                                 type: 'path',
                                 attr: {
                                     d: 'M{1} {2} L{3} {4}'.format(
@@ -278,11 +309,12 @@
                                         endY
                                     ),
                                     stroke: prop.xaxisColor,
+                                    'stroke-width': typeof prop.xaxisLinewidth === 'number' ? prop.xaxisLinewidth : 1,
                                     'shape-rendering': "crispEdges"
                                 }
                             });
                         }
-                    
+
                     // This style is used by line charts
                     } else if (prop.xaxisLabelsPosition === 'edge') {
 
@@ -296,9 +328,10 @@
 
                             var gap = ( (obj.graphWidth) / (len - 1)),
                                 x   = prop.gutterLeft + ((i+1) * gap);
-    
+
                             RG.SVG.create({
                                 svg: obj.svg,
+                                parent: obj.svg.all,
                                 type: 'path',
                                 attr: {
                                     d: 'M{1} {2} L{3} {4}'.format(
@@ -308,6 +341,7 @@
                                         endY
                                     ),
                                     stroke: prop.xaxisColor,
+                                    'stroke-width': typeof prop.xaxisLinewidth === 'number' ? prop.xaxisLinewidth : 1,
                                     'shape-rendering': "crispEdges"
                                 }
                             });
@@ -324,6 +358,7 @@
                 if (prop.yaxis === false) {
                     RG.SVG.create({
                         svg: obj.svg,
+                        parent: obj.svg.all,
                         type: 'path',
                         attr: {
                             d: 'M{1} {2} L{3} {4}'.format(
@@ -333,7 +368,9 @@
                                 endY
                             ),
                             stroke: obj.properties.xaxisColor,
-                            'shape-rendering': "crispEdges"
+                            'stroke-width': typeof prop.xaxisLinewidth === 'number' ? prop.xaxisLinewidth : 1,
+                            'shape-rendering': "crispEdges",
+                            parent: obj.svg.all,
                         }
                     });
                 }
@@ -364,9 +401,10 @@
 
                 RG.SVG.text({
                     object: obj,
+                    parent: obj.svg.all,
                     text:   obj.scale.labels[i],
                     x:      x,
-                    y:      (obj.height - prop.gutterBottom) + (prop.xaxis ? prop.xaxisTickmarksLength + 6 : 10) + prop.xaxisLabelsOffsety,
+                    y:      (obj.height - prop.gutterBottom) + (prop.xaxis ? prop.xaxisTickmarksLength + 6 : 10) + (prop.xaxisLinewidth || 1) + prop.xaxisLabelsOffsety,
                     halign: 'center',
                     valign: 'top',
                     font:   prop.xaxisTextFont   || prop.textFont,
@@ -381,31 +419,34 @@
             
             
 
-            // Add the minimum label
-            var y   = obj.height - prop.gutterBottom + prop.xaxisLabelsOffsety + (prop.xaxis ? prop.xaxisTickmarksLength + 6 : 10),
-                str = RG.SVG.numberFormat({
+            // Add the minimum label if labels are enabled
+            if (prop.xaxisLabelsCount > 0) {
+                var y   = obj.height - prop.gutterBottom + prop.xaxisLabelsOffsety + (prop.xaxis ? prop.xaxisTickmarksLength + 6 : 10),
+                    str = RG.SVG.numberFormat({
+                        object: obj,
+                        num: prop.xaxisMin.toFixed(prop.xaxisDecimals),
+                        prepend: prop.xaxisUnitsPre,
+                        append: prop.xaxisUnitsPost,
+                        point: prop.xaxisPoint,
+                        thousand: prop.xaxisThousand,
+                        formatter: prop.xaxisFormatter
+                    });
+    
+                var text = RG.SVG.text({
                     object: obj,
-                    num: prop.xaxisMin.toFixed(prop.xaxisDecimals),
-                    prepend: prop.xaxisUnitsPre,
-                    append: prop.xaxisUnitsPost,
-                    point: prop.xaxisPoint,
-                    thousand: prop.xaxisThousand,
-                    formatter: prop.xaxisFormatter
+                    parent: obj.svg.all,
+                    text: typeof prop.xaxisFormatter === 'function' ? (prop.xaxisFormatter)(this, prop.xaxisMin) : str,
+                    x: prop.gutterLeft + prop.xaxisLabelsOffsetx,
+                    y: y,
+                    halign: 'center',
+                    valign: 'top',
+                    font:   prop.xaxisTextFont   || prop.textFont,
+                    size:   prop.xaxisTextSize   || (typeof prop.textSize === 'number' ? prop.textSize + 'pt' : prop.textSize),
+                    bold:   prop.xaxisTextBold   || prop.textBold,
+                    italic: prop.xaxisTextItalic || prop.textItalic,
+                    color:  prop.xaxisTextColor  || prop.textColor
                 });
-
-            var text = RG.SVG.text({
-                object: obj,
-                text: typeof prop.xaxisFormatter === 'function' ? (prop.xaxisFormatter)(this, prop.xaxisMin) : str,
-                x: prop.gutterLeft + prop.xaxisLabelsOffsetx,
-                y: y,
-                halign: 'center',
-                valign: 'top',
-                font:   prop.xaxisTextFont   || prop.textFont,
-                size:   prop.xaxisTextSize   || (typeof prop.textSize === 'number' ? prop.textSize + 'pt' : prop.textSize),
-                bold:   prop.xaxisTextBold   || prop.textBold,
-                italic: prop.xaxisTextItalic || prop.textItalic,
-                color:  prop.xaxisTextColor  || prop.textColor
-            });
+            }
 
         //
         // Draw the X axis labels
@@ -421,13 +462,22 @@
                     for (var i=0; i<prop.xaxisLabels.length; ++i) {
                     
                         var x = prop.gutterLeft + (segment / 2) + (i * segment);
+                        
+                        if (obj.scale.max <=0 && obj.scale.min < obj.scale.max) {
+                            var y = prop.gutterTop - (RG.SVG.ISFF ? 5 : 10)  - (prop.xaxisLinewidth || 1) + prop.xaxisLabelsOffsety;
+                            var valign = 'bottom';
+                        } else {
+                            var y = obj.height - prop.gutterBottom + (RG.SVG.ISFF ? 5 : 10) + (prop.xaxisLinewidth || 1) + prop.xaxisLabelsOffsety;
+                            var valign = 'top';
+                        }
         
                         RG.SVG.text({
                             object: obj,
+                            parent: obj.svg.all,
                             text: prop.xaxisLabels[i],
                             x: x + prop.xaxisLabelsOffsetx,
-                            y: obj.height - prop.gutterBottom + (RG.SVG.ISFF ? 5 : 10) + prop.xaxisLabelsOffsety,
-                            valign: 'top',
+                            y: y,
+                            valign: valign,
                             halign: 'center',
                             size:   prop.xaxisTextSize   || prop.textSize,
                             italic: prop.xaxisTextItalic || prop.textItalic,
@@ -451,13 +501,22 @@
                     for (var i=0; i<prop.xaxisLabels.length; ++i) {
                     
                         var x = prop.gutterLeft + (i * segment) + hmargin;
+
+                        if (obj.scale.max <= 0 && obj.scale.min < 0) {
+                            valign = 'bottom';
+                            y = prop.gutterTop - (RG.SVG.ISFF ? 5 : 10) - (prop.xaxisTickmarksLength - 5)  - (prop.xaxisLinewidth || 1) + prop.xaxisLabelsOffsety
+                        } else {
+                            valign = 'top';
+                            y = obj.height - prop.gutterBottom + (RG.SVG.ISFF ? 5 : 10) + (prop.xaxisTickmarksLength - 5) + (prop.xaxisLinewidth || 1) + prop.xaxisLabelsOffsety;
+                        }
                     
                         RG.SVG.text({
                             object: obj,
+                            parent: obj.svg.all,
                             text: prop.xaxisLabels[i],
                             x: x + prop.xaxisLabelsOffsetx,
-                            y: obj.height - prop.gutterBottom + (RG.SVG.ISFF ? 5 : 10) + (prop.xaxisTickmarksLength - 5) + prop.xaxisLabelsOffsety,
-                            valign: 'top',
+                            y: y,
+                            valign: valign,
                             halign: 'center',
                             size:   prop.xaxisTextSize   ||  prop.textSize,
                             italic: prop.xaxisTextItalic ||  prop.textItalic,
@@ -490,10 +549,21 @@
         if (prop.yaxis) {
 
             // The X coordinate that the Y axis is positioned at
-            var x = obj.type === 'hbar' ? obj.getXCoord(0) : prop.gutterLeft;
+            if (obj.type === 'hbar') {
+                
+                var x = obj.getXCoord(prop.xaxisMin > 0 ? prop.xaxisMin : 0);
+    
+                if (prop.xaxisMin < 0 && prop.xaxisMax <= 0) {
+                    x = obj.getXCoord(prop.xaxisMax);
+                }
+            } else {
+                var x = prop.gutterLeft;
+            }
+
 
             var axis = RG.SVG.create({
                 svg: obj.svg,
+                parent: obj.svg.all,
                 type: 'path',
                 attr: {
                     d: 'M{1} {2} L{3} {4}'.format(
@@ -504,7 +574,9 @@
                     ),
                     stroke: prop.yaxisColor,
                     fill: prop.yaxisColor,
-                    'shape-rendering': "crispEdges"
+                    'stroke-width': typeof prop.yaxisLinewidth === 'number' ? prop.yaxisLinewidth : 1,
+                    'shape-rendering': "crispEdges",
+                    'stroke-linecap': 'square'
                 }
             });
 
@@ -516,21 +588,27 @@
 
             if (obj.type === 'hbar') {
                 
-                var height = obj.graphHeight / prop.yaxisLabels.length,
-                    y      = prop.gutterTop,
+                var height = (obj.graphHeight - prop.vmarginTop - prop.vmarginBottom) / prop.yaxisLabels.length,
+                    y      = prop.gutterTop + prop.vmarginTop,
                     len    = prop.yaxisLabels.length,
                     startX = obj.getXCoord(0) + (prop.xaxisMin < 0 ? prop.yaxisTickmarksLength : 0),
                     endX   = obj.getXCoord(0) - prop.yaxisTickmarksLength;
+
+                if (obj.type === 'hbar' && prop.xaxisMin < 0 && prop.xaxisMax <=0) {
+                    startX = obj.getXCoord(prop.xaxisMax);
+                    endX   = obj.getXCoord(prop.xaxisMax) + 5;
+                }
 
                 //
                 // Draw the tickmarks
                 //
                 if (prop.yaxisTickmarks) {
                     for (var i=0; i<len; ++i) {
-    
+
                         // Draw the axis
                         var axis = RG.SVG.create({
                             svg: obj.svg,
+                            parent: obj.svg.all,
                             type: 'path',
                             attr: {
                                 d: 'M{1} {2} L{3} {4}'.format(
@@ -540,6 +618,7 @@
                                     y + 0.001
                                 ),
                                 stroke: prop.yaxisColor,
+                                'stroke-width': typeof prop.yaxisLinewidth === 'number' ? prop.yaxisLinewidth : 1,
                                 'shape-rendering': "crispEdges"
                             }
                         });
@@ -549,19 +628,32 @@
     
     
                     // Draw an extra tick if the X axis position is not zero or
-                    //if the xaxis is not being shown
+                    // if the xaxis is not being shown
                     if (prop.xaxis === false) {
+
+                        if (obj.type === 'hbar' && prop.xaxisMin <= 0 && prop.xaxisMax < 0) {
+                            var startX = obj.getXCoord(prop.xaxisMax);
+                            var endX   = obj.getXCoord(prop.xaxisMax) + prop.yaxisTickmarksLength;
+
+                        } else {
+                            var startX = obj.getXCoord(0) - prop.yaxisTickmarksLength;
+                            var endX   = obj.getXCoord(0) + (prop.xaxisMin < 0 ? prop.yaxisTickmarksLength : 0);
+                        }
+
                         var axis = RG.SVG.create({
                             svg: obj.svg,
+                            parent: obj.svg.all,
                             type: 'path',
                             attr: {
                                 d: 'M{1} {2} L{3} {4}'.format(
-                                    obj.getXCoord(0) - prop.yaxisTickmarksLength - 1,
-                                    obj.height - prop.gutterBottom,
-                                    obj.getXCoord(0) + (obj.type === 'hbar' && prop.xaxisMin < 0 ? 3 : 0),
-                                    obj.height - prop.gutterBottom - 0.001
+                                    startX,
+                                    obj.height - prop.gutterBottom - parseFloat(prop.vmarginBottom),
+
+                                    endX,
+                                    obj.height - prop.gutterBottom - parseFloat(prop.vmarginBottom) - 0.001
                                 ),
                                 stroke: obj.properties.yaxisColor,
+                                'stroke-width': typeof prop.yaxisLinewidth === 'number' ? prop.yaxisLinewidth : 1,
                                 'shape-rendering': "crispEdges"
                             }
                         });
@@ -588,6 +680,7 @@
                         // Draw the axis
                         var axis = RG.SVG.create({
                             svg: obj.svg,
+                            parent: obj.svg.all,
                             type: 'path',
                             attr: {
                                 d: 'M{1} {2} L{3} {4}'.format(
@@ -597,6 +690,7 @@
                                     y + 0.001
                                 ),
                                 stroke: prop.yaxisColor,
+                                'stroke-width': typeof prop.yaxisLinewidth === 'number' ? prop.yaxisLinewidth : 1,
                                 'shape-rendering': "crispEdges"
                             }
                         });
@@ -607,9 +701,13 @@
     
                     // Draw an extra tick if the X axis position is not zero or
                     //if the xaxis is not being shown
-                    if (obj.type !== 'hbar' && (prop.yaxisMin !== 0 || prop.xaxis === false)) {
+                    if (    (prop.yaxisMin !== 0 || prop.xaxis === false)
+                        && !(obj.scale.min > 0 && obj.scale.max > 0) ) {
+
+
                         var axis = RG.SVG.create({
                             svg: obj.svg,
+                            parent: obj.svg.all,
                             type: 'path',
                             attr: {
                                 d: 'M{1} {2} L{3} {4}'.format(
@@ -619,6 +717,7 @@
                                     obj.height - prop.gutterBottom - 0.001
                                 ),
                                 stroke: prop.yaxisColor,
+                                'stroke-width': typeof prop.yaxisLinewidth === 'number' ? prop.yaxisLinewidth : 1,
                                 'shape-rendering': "crispEdges"
                             }
                         });
@@ -645,6 +744,7 @@
 
                 RG.SVG.text({
                     object: obj,
+                    parent: obj.svg.all,
                     text: obj.scale.labels[i],
                     x: prop.gutterLeft - 7 - (prop.yaxis ? (prop.yaxisTickmarksLength - 3) : 0) + prop.yaxisLabelsOffsetx,
                     y: y + prop.yaxisLabelsOffsety,
@@ -669,6 +769,7 @@
 
             var text = RG.SVG.text({
                 object: obj,
+                parent: obj.svg.all,
                 text: typeof prop.yaxisFormatter === 'function' ? (prop.yaxisFormatter)(this, prop.yaxisMin) : str,
                 x: prop.gutterLeft - 7 - (prop.yaxis ? (prop.yaxisTickmarksLength - 3) : 0) + prop.yaxisLabelsOffsetx,
                 y: y + prop.yaxisLabelsOffsety,
@@ -690,15 +791,34 @@
 
             for (var i=0; i<prop.yaxisLabels.length; ++i) {
 
-                var segment = obj.graphHeight / prop.yaxisLabels.length,
-                    y       = prop.gutterTop + (segment * i) + (segment / 2) + prop.yaxisLabelsOffsety;
+                var segment = (obj.graphHeight - (prop.vmarginTop || 0) - (prop.vmarginBottom || 0) ) / prop.yaxisLabels.length,
+                    y       = prop.gutterTop + (prop.vmarginTop || 0) + (segment * i) + (segment / 2) + prop.yaxisLabelsOffsety,
+                    x       = prop.gutterLeft - 7 /*- (prop.yaxis ? (prop.yaxisTickmarksLength) : 0)*/ - (prop.yaxisLinewidth || 1) + prop.yaxisLabelsOffsetx,
+                    halign  = 'right';
+
+                // HBar labels
+                if (obj.type === 'hbar' && obj.scale.min < obj.scale.max && obj.scale.max <= 0) {
+                    halign = 'left';
+                    x      = obj.width - prop.gutterRight + 7 + prop.yaxisLabelsOffsetx;
+                
+                // HBar labels
+                } else if (obj.type === 'hbar' && !prop.yaxisLabelsSpecific) {
+                    var segment = (obj.graphHeight - (prop.vmarginTop || 0) - (prop.vmarginBottom || 0) ) / (prop.yaxisLabels.length);
+                    y = prop.gutterTop + (prop.vmarginTop || 0) + (segment * i) + (segment / 2) + prop.yaxisLabelsOffsetx;
+
+                // Specific scale
+                } else {
+                    var segment = (obj.graphHeight - (prop.vmarginTop || 0) - (prop.vmarginBottom || 0) ) / (prop.yaxisLabels.length - 1);
+                    y = obj.height - prop.gutterBottom - (segment * i) + prop.yaxisLabelsOffsetx;
+                }
 
                 var text = RG.SVG.text({
                     object: obj,
+                    parent: obj.svg.all,
                     text:   prop.yaxisLabels[i] ? prop.yaxisLabels[i] : '',
-                    x:      prop.gutterLeft - 7 /*- (prop.yaxis ? (prop.yaxisTickmarksLength) : 0)*/ + prop.yaxisLabelsOffsetx,
+                    x:      x,
                     y:      y,
-                    halign: 'right',
+                    halign: halign,
                     valign: 'center',
                     font:   prop.yaxisTextFont   || prop.textFont,
                     size:   prop.yaxisTextSize   || (typeof prop.textSize === 'number' ? prop.textSize + 'pt' : prop.textSize),
@@ -724,33 +844,117 @@
     //
     RG.SVG.drawBackground = function (obj)
     {
-        var prop  = obj.properties;
+        var prop = obj.properties;
+
+        // Set these properties so that if it doesn't exist things don't fail
+        if (typeof prop.variant3dOffsetx !== 'number') prop.variant3dOffsetx = 0;
+        if (typeof prop.variant3dOffsety !== 'number') prop.variant3dOffsety = 0;
+
+
+
+
+        if (prop.backgroundColor) {
+            RG.SVG.create({
+                svg:  obj.svg,
+                parent: obj.svg.all,
+                type: 'rect',
+                attr: {
+                    x: -1 + prop.variant3dOffsetx,
+                    y: -1 - prop.variant3dOffsety,
+                    width: parseFloat(obj.svg.getAttribute('width')) + 2,
+                    height: parseFloat(obj.svg.getAttribute('height')) + 2,
+                    fill: prop.backgroundColor
+                }
+            });
+        }
+        
+        // Render a background image
+        // <image xlink:href="firefox.jpg" x="0" y="0" height="50px" width="50px"/>
+        if (prop.backgroundImage) {
+        
+            var attr = {
+                'xlink:href': prop.backgroundImage,
+                //preserveAspectRatio: 'xMidYMid slice',
+                preserveAspectRatio: prop.backgroundImageAspect || 'none',
+                x: prop.gutterLeft,
+                y: prop.gutterTop
+            };
+
+            if (prop.backgroundImageStretch) {
+
+                attr.x      = prop.gutterLeft + prop.variant3dOffsetx;
+                attr.y      = prop.gutterTop + prop.variant3dOffsety;
+                attr.width  = obj.width - prop.gutterLeft - prop.gutterRight;
+                attr.height = obj.height - prop.gutterTop - prop.gutterBottom;
+
+            } else {
+
+                if (typeof prop.backgroundImageX === 'number') {
+                    attr.x =  prop.backgroundImageX + prop.variant3dOffsetx;
+                }
+
+                if (typeof prop.backgroundImageY === 'number') {
+                    attr.y =  prop.backgroundImageY + prop.variant3dOffsety;
+                }
+
+                if (typeof prop.backgroundImageW === 'number') {
+                    attr.width =  prop.backgroundImageW;
+                }
+
+                if (typeof prop.backgroundImageH === 'number') {
+                    attr.height =  prop.backgroundImageH;
+                }
+            }
+            
+            //
+            // Account for the chart being 3d
+            //
+            if (prop.variant === '3d') {
+                attr.x += prop.variant3dOffsetx;
+                attr.y -= prop.variant3dOffsety;
+            }
+
+
+
+            var img = RG.SVG.create({
+                svg:  obj.svg,
+                parent: obj.svg.all,
+                type: 'image',
+                attr: attr,
+                style: {
+                    opacity: typeof prop.backgroundImageOpacity === 'number' ? prop.backgroundImageOpacity : 1
+                }
+            });
+        }
 
         if (prop .backgroundGrid) {
 
             var parts = [];
-    
+
+
+
             // Add the horizontal lines to the path
             if (prop.backgroundGridHlines) {
 
                 var count = typeof prop.backgroundGridHlinesCount === 'number' ? prop.backgroundGridHlinesCount : (obj.type === 'hbar' ? (prop.yaxisLabels.length || obj.data.length || 5) : prop.yaxisLabelsCount);
 
                 for (var i=0; i<count; ++i) {
+
                     parts.push('M{1} {2} L{3} {4}'.format(
-                        prop.gutterLeft,
-                        prop.gutterTop + (obj.graphHeight / count) * i,
-                        obj.width - prop.gutterRight,
-                        prop.gutterTop + (obj.graphHeight / count) * i
+                        prop.gutterLeft + prop.variant3dOffsetx,
+                        prop.gutterTop + (obj.graphHeight / count) * i - prop.variant3dOffsety,
+                        obj.width - prop.gutterRight + prop.variant3dOffsetx,
+                        prop.gutterTop + (obj.graphHeight / count) * i - prop.variant3dOffsety
                     ));
                 }
 
                 // Add an extra background grid line to the path - this its
                 // underneath the X axis and shows up if its not there.
                 parts.push('M{1} {2} L{3} {4}'.format(
-                    prop.gutterLeft,
-                    obj.height - prop.gutterBottom,
-                    obj.width - prop.gutterRight,
-                    obj.height - prop.gutterBottom
+                    prop.gutterLeft + prop.variant3dOffsetx,
+                    obj.height - prop.gutterBottom - prop.variant3dOffsety,
+                    obj.width - prop.gutterRight + prop.variant3dOffsetx,
+                    obj.height - prop.gutterBottom - prop.variant3dOffsety
                 ));
             }
 
@@ -762,7 +966,9 @@
                 if (obj.type === 'line' && RG.SVG.isArray(obj.data[0])) {
                     var len = obj.data[0].length;
                 } else if (obj.type === 'hbar') {
-                    var len = prop.xaxisLabelsCount;
+                    var len = prop.xaxisLabelsCount || 10;
+                } else if (obj.type === 'scatter') {
+                    var len = (prop.xaxisLabels && prop.xaxisLabels.length) || 10;
                 } else {
                     var len = obj.data.length;
                 }
@@ -775,10 +981,10 @@
             
                 for (var i=0; i<=count; ++i) {
                     parts.push('M{1} {2} L{3} {4}'.format(
-                        prop.gutterLeft + ((obj.graphWidth / count) * i),
-                        prop.gutterTop,
-                        prop.gutterLeft + ((obj.graphWidth / count) * i),
-                        obj.height - prop.gutterBottom
+                        prop.gutterLeft + ((obj.graphWidth / count) * i) + prop.variant3dOffsetx,
+                        prop.gutterTop - prop.variant3dOffsety,
+                        prop.gutterLeft + ((obj.graphWidth / count) * i) + prop.variant3dOffsetx,
+                        obj.height - prop.gutterBottom - prop.variant3dOffsety
                     ));
                 }
             }
@@ -791,17 +997,17 @@
             if (prop.backgroundGridBorder) {
                 parts.push('M{1} {2} L{3} {4} L{5} {6} L{7} {8} z'.format(
                     
-                    prop.gutterLeft,
-                    prop.gutterTop,
+                    prop.gutterLeft + prop.variant3dOffsetx,
+                    prop.gutterTop  - prop.variant3dOffsety,
                     
-                    obj.width - prop.gutterRight,
-                    prop.gutterTop,
+                    obj.width - prop.gutterRight + prop.variant3dOffsetx,
+                    prop.gutterTop - prop.variant3dOffsety,
                     
-                    obj.width - prop.gutterRight,
-                    obj.height - prop.gutterBottom,
+                    obj.width - prop.gutterRight + prop.variant3dOffsetx,
+                    obj.height - prop.gutterBottom - prop.variant3dOffsety,
                     
-                    prop.gutterLeft,
-                    obj.height - prop.gutterBottom
+                    prop.gutterLeft + prop.variant3dOffsetx,
+                    obj.height - prop.gutterBottom - prop.variant3dOffsety
                 ));
             }
 
@@ -810,6 +1016,7 @@
             // Now draw the path
             var grid = RG.SVG.create({
                 svg: obj.svg,
+                parent: obj.svg.all,
                 type: 'path',
                 attr: {
                     d: parts.join(' '),
@@ -892,13 +1099,13 @@
         * ** Must be first **
         */
 
-        if (!max) {
+        if (max === 0 && min === 0) {
 
-            var max   = 1;
+            var max = 1;
 
             for (var i=0; i<numlabels; ++i) {
 
-                var label = ((((max - min) / numlabels) + min) * (i + 1)).toFixed(decimals);
+                var label = ((((max - min) / numlabels) * (i + 1)) + min).toFixed(decimals);
 
                 scale.labels.push(unitsPre + label + unitsPost);
                 scale.values.push(parseFloat(label))
@@ -1647,7 +1854,7 @@
     RG.SVG.text = function (opt)
     {
         var obj        = opt.object,
-            parent     = opt.parent,
+            parent     = opt.parent || opt.object.svg.all,
             size       = opt.size,
             bold       = opt.bold,
             font       = opt.font,
@@ -1687,7 +1894,7 @@
 
         var text = RG.SVG.create({
             svg: obj.svg,
-            parent: opt.parent || null,
+            parent: opt.parent,
             type: 'text',
             attr: {
                 fill: color,
@@ -1714,17 +1921,19 @@
         
             var bbox = text.getBBox(),
                 rect = RG.SVG.create({
-                svg: obj.svg,
-                type: 'rect',
-                attr: {
-                    x:      bbox.x - padding,
-                    y:      bbox.y - padding,
-                    width:  bbox.width + (padding * 2),
-                    height: bbox.height + (padding * 2),
-                    fill:   background
-                }
-            });
-            obj.svg.insertBefore(rect, text);
+                    svg:    obj.svg,
+                    parent: opt.parent,
+                    type:   'rect',
+                    attr: {
+                        x:      bbox.x - padding,
+                        y:      bbox.y - padding,
+                        width:  bbox.width + (padding * 2),
+                        height: bbox.height + (padding * 2),
+                        fill:   background
+                    }
+                });
+
+            parent.insertBefore(rect, text);
         }
 
 
@@ -1892,7 +2101,6 @@
     RG.SVG.hideTooltip = function ()
     {
         var tooltip = RG.SVG.REG.get('tooltip');
-            //uid     = arguments[0] && arguments[0].uid ? arguments[0].uid : null;
 
         if (tooltip && tooltip.parentNode /*&& (!uid || uid == tooltip.__canvas__.uid)*/) {
             tooltip.parentNode.removeChild(tooltip);
@@ -1900,7 +2108,7 @@
             tooltip.style.visibility = 'hidden';
             RG.SVG.REG.set('tooltip', null);
         }
-        
+
         if (tooltip && tooltip.__object__) {
             RG.SVG.removeHighlight(tooltip.__object__);
         }
@@ -1927,7 +2135,7 @@
 
         var filter = RG.SVG.create({
             svg: obj.svg,
-            parent: obj.defs,
+            parent: obj.svg.defs,
             type: 'filter',
             attr: {
                 id: id,
@@ -1993,7 +2201,7 @@
 
 
     /**
-    * Takes a sequential index abd returns the group/index variation of it. Eg if you have a
+    * Takes a sequential index and returns the group/index variation of it. Eg if you have a
     * sequential index from a grouped bar chart this function can be used to convert that into
     * an appropriate group/index combination
     * 
@@ -2063,6 +2271,8 @@
     // Gets a path that is usable by the SVG A path command
     //
     // @patam object options The options/arg to the function
+    //
+    // NB ** Still used by the Pie chart and the semi-circular Meter **
     //
     RG.SVG.TRIG.getArcPath = function (options)
     {
@@ -2142,6 +2352,163 @@
 
 
 
+    //
+    // Gets a path that is usable by the SVG A path command
+    //
+    // @patam object options The options/arg to the function
+    //
+    RG.SVG.TRIG.getArcPath2 = function (options)
+    {
+        //
+        // Make circles start at the top instead of the right hand side
+        //
+        options.start -= 1.57;
+        options.end   -= 1.57;
+
+        var start = RG.SVG.TRIG.toCartesian({
+            cx:    options.cx,
+            cy:    options.cy,
+            r:     options.r,
+            angle: options.start
+        });
+
+        var end = RG.SVG.TRIG.toCartesian({
+            cx:    options.cx,
+            cy:    options.cy,
+            r:     options.r,
+            angle: options.end
+        });
+
+        var diff = ma.abs(options.end - options.start);
+        
+        // Initial values
+        var largeArc = '0';
+        var sweep    = '0';
+
+        //TODO Put various options here for the correct combination of flags to use
+        if (!options.anticlockwise) {
+            if (diff > RG.SVG.TRIG.PI) {
+                largeArc = '1';
+                sweep    = '1';
+            } else {
+                largeArc = '0';
+                sweep    = '1';
+            }
+        } else {
+            if (diff > RG.SVG.TRIG.PI) {
+                largeArc = '1';
+                sweep    = '0';
+            } else {
+                largeArc = '0';
+                sweep    = '0';
+            }
+        }
+
+        if (typeof options.lineto === 'boolean' && options.lineto === false) {
+            var d = [
+                "M", start.x, start.y,
+                "A", options.r, options.r, 0, largeArc, sweep, end.x, end.y
+            ];
+        } else {
+            var d = [
+                "M", options.cx, options.cy,
+                "L", start.x, start.y, 
+                "A", options.r, options.r, 0, largeArc, sweep, end.x, end.y
+            ];
+        }
+
+        if (options.array === true) {
+            return d;
+        } else {
+            return d.join(" ");
+        }
+    };
+
+
+
+
+
+
+
+
+    //
+    // Gets a path that is usable by the SVG A path command
+    //
+    // @patam object options The options/arg to the function
+    //
+    RG.SVG.TRIG.getArcPath3 = function (options)
+    {
+        //
+        // Make circles start at the top instead of the right hand side
+        //
+        options.start -= 1.57;
+        options.end   -= 1.57;
+
+        var start = RG.SVG.TRIG.toCartesian({
+            cx:    options.cx,
+            cy:    options.cy,
+            r:     options.r,
+            angle: options.start
+        });
+
+        var end = RG.SVG.TRIG.toCartesian({
+            cx:    options.cx,
+            cy:    options.cy,
+            r:     options.r,
+            angle: options.end
+        });
+
+        var diff = ma.abs(options.end - options.start);
+        
+        // Initial values
+        var largeArc = '0';
+        var sweep    = '0';
+
+        //TODO Put various options here for the correct combination of flags to use
+        if (!options.anticlockwise) {
+            if (diff > RG.SVG.TRIG.PI) {
+                largeArc = '1';
+                sweep    = '1';
+            } else {
+                largeArc = '0';
+                sweep    = '1';
+            }
+        } else {
+            if (diff > RG.SVG.TRIG.PI) {
+                largeArc = '1';
+                sweep    = '0';
+            } else {
+                largeArc = '0';
+                sweep    = '0';
+            }
+        }
+
+        if (typeof options.lineto === 'boolean' && options.lineto === false) {
+            var d = [
+                "M", start.x, start.y,
+                "A", options.r, options.r, 0, largeArc, sweep, end.x, end.y
+            ];
+        } else {
+            var d = [
+                "L", start.x, start.y,
+                "A", options.r, options.r, 0, largeArc, sweep, end.x, end.y
+            ];
+        }
+
+        if (options.array === true) {
+            return d;
+        } else {
+            return d.join(" ");
+        }
+    };
+
+
+
+
+
+
+
+
     /**
     * This function gets the end point (X/Y coordinates) of a given radius.
     * You pass it the center X/Y and the radius and this function will return
@@ -2183,7 +2550,8 @@
     */
     RG.SVG.drawTitle = function (obj)
     {
-        var prop = obj.properties;
+        var prop   = obj.properties;
+        var valign = 'bottom';
         
         //
         // The Pie chart title should default to being above the centerx
@@ -2203,19 +2571,37 @@
 
 
 
-        prop.titleY = typeof prop.titleY === 'number' ? prop.titleY : prop.gutterTop - 10;
+
+        if (obj.scale && obj.scale.max <= 0 && obj.scale.min < 0 && typeof prop.titleY !== 'number' && obj.type !== 'hbar') {
+            prop.titleY = obj.height - prop.gutterBottom + 10;
+            var positionBottom = true;
+            valign = 'top';
+        } else if (typeof prop.titleY !== 'number') {
+            var positionBottom = false;
+            prop.titleY = prop.gutterTop - 10;
+            valign      = 'bottom';
+            
+            // Account for the key
+            if (!RG.SVG.isNull(prop.key)) {
+                prop.titleY -= (2 * (prop.keyTextSize || prop.textSize));
+            }
+        }
 
         // If a subtitle is specified move the title up a bit in
         // order to accommodate it
-        if (prop.titleSubtitle && typeof prop.titleSubtitleY !== 'number') {
+        if (prop.titleSubtitle && typeof prop.titleSubtitleY !== 'number' && !positionBottom) {
             prop.titleY = prop.titleY - (prop.titleSubtitleSize * 1.5);
         }
         
         // Work out the subtitle size
         prop.titleSubTitleSize = prop.titleSubTitleSize || prop.textSize;
-        
+
         // Work out the subtitle Y position
-        prop.titleSubtitleY = prop.titleSubtitleY || prop.titleY + 8;
+        prop.titleSubtitleY = prop.titleSubtitleY || prop.titleY + 18;
+
+        if (positionBottom && typeof prop.titleSubtitleY !== 'number') {
+            prop.titleSubtitleY = prop.titleY + 26;
+        }
 
 
 
@@ -2228,14 +2614,15 @@
             RG.SVG.text({
                 object: obj,
                 svg:    obj.svg,
+                parent: obj.svg.all,
                 text:   prop.title.toString(),
                 size:   prop.titleSize   || (prop.textSize + 4) || 16,
 
-                x:      typeof prop.titleX === 'number' ? prop.titleX : prop.gutterLeft + obj.graphWidth / 2,
-                y:      prop.titleY,
+                x:      typeof prop.titleX === 'number' ? prop.titleX + (prop.variant3dOffsetx || 0) : prop.gutterLeft + (obj.graphWidth / 2) + (prop.variant3dOffsetx || 0),
+                y:      prop.titleY + (prop.variant3dOffsety || 0),
 
                 halign: prop.titleHalign || 'center',
-                valign: prop.titleValign || 'bottom',
+                valign: prop.titleValign || valign,
                 color:  prop.titleColor  || prop.textColor || 'black',
                 bold:   prop.titleBold   || false,
                 italic: prop.titleItalic || false,
@@ -2250,12 +2637,13 @@
             RG.SVG.text({
                 object: obj,
                 svg: obj.svg,
+                parent: obj.svg.all,
                 text:   prop.titleSubtitle,
                 size:   prop.titleSubtitleSize,
-                x:      typeof prop.titleSubtitleX === 'number' ? prop.titleSubtitleX : prop.gutterLeft + obj.graphWidth / 2,
-                y:      prop.titleSubtitleY,
+                x:      typeof prop.titleSubtitleX === 'number' ? prop.titleSubtitleX : prop.gutterLeft + (obj.graphWidth / 2) + (prop.variant3dOffsetx || 0),
+                y:      prop.titleSubtitleY + (prop.variant3dOffsety || 0),
                 halign: prop.titleSubtitleHalign || 'center',
-                valign: prop.titleSubtitleValign || 'bottom',
+                valign: prop.titleSubtitleValign || valign,
                 color:  prop.titleSubtitleColor  || prop.textColor || '#aaa',
                 bold:   prop.titleSubtitleBold   || false,
                 italic: prop.titleSubtitleItalic || false,
@@ -2342,7 +2730,7 @@
             if (opt && opt.direction && opt.direction === 'horizontal') {
                 var grad = RG.SVG.create({
                     type: 'linearGradient',
-                    parent: obj.defs,
+                    parent: obj.svg.defs,
                     attr: {
                         id: 'RGraph-linear-gradient' + obj.gradientCounter,
                         x1: opt.start || 0,
@@ -2357,7 +2745,7 @@
 
                 var grad = RG.SVG.create({
                     type: 'linearGradient',
-                    parent: obj.defs,
+                    parent: obj.svg.defs,
                     attr: {
                         id: 'RGraph-linear-gradient' + obj.gradientCounter,
                         x1: 0,
@@ -2425,15 +2813,15 @@
 
             var grad = RG.SVG.create({
                 type: 'radialGradient',
-                parent: obj.defs,
+                parent: obj.svg.defs,
                 attr: {
                     id: 'RGraph-radial-gradient' + obj.gradientCounter,
-                    gradientUnits: 'userSpaceOnUse',
-                    cx: obj.centerx,
-                    cy: obj.centery,
-                    fx: obj.centerx,
-                    fy: obj.centery,
-                    r: obj.radius
+                    gradientUnits: opt.gradientUnits || 'userSpaceOnUse',
+                    cx: opt.cx || obj.centerx,
+                    cy: opt.cy || obj.centery,
+                    fx: opt.fx || obj.centerx,
+                    fy: opt.fy || obj.centery,
+                    r:  opt.r  || obj.radius
                 }
             });
 
@@ -2499,7 +2887,8 @@
             obj.resetColorsToOriginalValues();
         }
 
-        // Hmmm... Should this be necessary?
+        // Hmmm... Should this be necessary? I don't think it will
+        // do any harm to leave it in.
         obj.originalColors = {};
 
 
@@ -2527,9 +2916,13 @@
     //
     RG.SVG.clear = function (svg)
     {
-        while (svg.lastChild) {
-            svg.removeChild(svg.lastChild);
+        while (svg.all.lastChild) {
+            svg.all.removeChild(svg.all.lastChild);
         }
+        
+        //while (svg.lastChild) {
+        //    svg.removeChild(svg.lastChild);
+        //}
     };
 
 
@@ -2663,11 +3056,16 @@
         if (highlight && RG.SVG.isArray(highlight) && highlight.length) {
             for (var i=0,len=highlight.length; i<len; ++i) {
                 if (highlight[i].parentNode) {
-                    obj.svg.removeChild(highlight[i]);
+                    //obj.svg.removeChild(highlight[i]);
+                    highlight[i].parentNode.removeChild(highlight[i]);
                 }
             }
         } else if (highlight && highlight.parentNode) {
-            highlight.parentNode.removeChild(highlight);
+            if (obj.type === 'scatter') {
+                highlight.setAttribute('fill', 'transparent');
+            } else {
+                highlight.parentNode.removeChild(highlight);
+            }
         }
     };
 
@@ -2688,14 +3086,13 @@
             var svg = arguments[0];
             
             RG.SVG.clear(svg);
-    
+
             var objects = RG.SVG.OR.get('id:' + svg.parentNode.id);
 
             for (var i=0,len=objects.length; i<len; ++i) {
 
                 // Reset the colors to the original values
                 RG.SVG.resetColorsToOriginalValues({object: objects[i]});
-
 
                 objects[i].draw();
             }
@@ -2716,63 +3113,112 @@
 
 
 
-    /**
-    * This is the same as Date.parse - though a little more flexible and accepts
-    * a few more formats.
-    * 
-    * @param string str The date string to parse
-    * @return Returns the same thing as Date.parse
-    */
+    //
+    // A better, more flexible, date parsing function
+    //
+    //@param  string str The string to parse
+    //@retutn number     A number, as returned by Date.parse()
+    //
     RG.SVG.parseDate = function (str)
     {
-        str = RG.SVG.trim(str);
+        var d = new Date();
 
-        // Allow for: now (just the word "now")
-        if (str === 'now') {
-            str = (new Date()).toString();
+        // Initialise the default values
+        var defaults = {
+            seconds: '00',
+            minutes: '00',
+            hours: '00',
+            date: d.getDate(),
+            month: d.getMonth() + 1,
+            year: d.getFullYear()
+        };
+
+        // Create the months array for turning textual months back to numbers
+        var months       = ['january','february','march','april','may','june','july','august','september','october','november','december'],
+            months_regex = months.join('|');
+
+        for (var i=0; i<months.length; ++i) {
+            months[months[i]] = i;
+            months[months[i].substring(0,3)] = i;
+            months_regex = months_regex + '|' + months[i].substring(0,3);
         }
 
+        // These are the seperators allowable for d/m/y and y/m/d dates
+        // (Its part of a regexp so the position of the square brackets
+        //  is crucial)
+        var sep = '[-./_=+~#:;,]+';
 
-        // Allow for: 22-11-2013
-        // Allow for: 22/11/2013
-        // Allow for: 22-11-2013 12:09:09
-        // Allow for: 22/11/2013 12:09:09
-        if (str.match(/^(\d\d)(?:-|\/)(\d\d)(?:-|\/)(\d\d\d\d)(.*)$/)) {
-            str = '{1}/{2}/{3}{4}'.format(
-                RegExp.$3,
-                RegExp.$2,
-                RegExp.$1,
-                RegExp.$4
-            );
+
+        // Tokenise the string
+        var tokens = str.split(/ +/);
+
+        // Loop through each token checking what is is
+        for (var i=0,len=tokens.length; i<len; ++i) {
+            if (tokens[i]) {
+                
+                // Year
+                if (tokens[i].match(/^\d\d\d\d$/)) {
+                    defaults.year = tokens[i];
+                }
+
+                // Month
+                var res = isMonth(tokens[i]);
+                if (typeof res === 'number') {
+                    defaults.month = res + 1; // Months are zero indexed
+                }
+
+                // Date
+                if (tokens[i].match(/^\d?\d(?:st|nd|rd|th)?$/)) {
+                    defaults.date = parseInt(tokens[i]);
+                }
+
+                // Time
+                if (tokens[i].match(/^(\d\d):(\d\d)(?:(\d\d))?$/)) {
+                    defaults.hours   = parseInt(RegExp.$1);
+                    defaults.minutes = parseInt(RegExp.$2);
+                    
+                    if (RegExp.$3) {
+                        defaults.seconds = parseInt(RegExp.$3);
+                    }
+                }
+
+                // Dateformat: XXXX-XX-XX
+                if (tokens[i].match(new RegExp('^(\\d\\d\\d\\d)' + sep + '(\\d\\d)' + sep + '(\\d\\d)$', 'i'))) {
+                    defaults.date  = parseInt(RegExp.$3);
+                    defaults.month = parseInt(RegExp.$2);
+                    defaults.year  = parseInt(RegExp.$1);
+                }
+
+                // Dateformat: XX-XX-XXXX
+                if (tokens[i].match(new RegExp('^(\\d\\d)' + sep + '(\\d\\d)' + sep + '(\\d\\d\\d\\d)$','i') )) {
+                    defaults.date  = parseInt(RegExp.$1);
+                    defaults.month = parseInt(RegExp.$2);
+                    defaults.year  = parseInt(RegExp.$3);
+                }
+            }
         }
 
-        // Allow for: 2013-11-22 12:12:12 or  2013/11/22 12:12:12
-        if (str.match(/^(\d\d\d\d)(-|\/)(\d\d)(-|\/)(\d\d)( |T)(\d\d):(\d\d):(\d\d)$/)) {
-            str = RegExp.$1 + '-' + RegExp.$3 + '-' + RegExp.$5 + 'T' + RegExp.$7 + ':' + RegExp.$8 + ':' + RegExp.$9;
-        }
-
-        // Allow for: 2013-11-22
-        if (str.match(/^\d\d\d\d-\d\d-\d\d$/)) {
-            str = str.replace(/-/g, '/');
-        }
-
-
-        // Allow for: 12:09:44 (time only using todays date)
-        if (str.match(/^\d\d:\d\d:\d\d$/)) {
-        
-            var dateObj  = new Date();
-            var date     = dateObj.getDate();
-            var month    = dateObj.getMonth() + 1;
-            var year     = dateObj.getFullYear();
-            
-            // Pad the date/month with a zero if it's not two characters
-            if (String(month).length === 1) month = '0' + month;
-            if (String(date).length === 1) date = '0' + date;
-
-            str = (year + '/' + month + '/' + date) + ' ' + str;
-        }
+        // Now put the defaults into a format thats recognised by Date.parse()
+        str = '{1}/{2}/{3} {4}:{5}:{6}'.format(
+            defaults.year,
+            String(defaults.month).length     === 1 ? '0' + (defaults.month) : defaults.month,
+            String(defaults.date).length      === 1 ? '0' + (defaults.date)      : defaults.date,
+            String(defaults.hours).length     === 1 ? '0' + (defaults.hours)     : defaults.hours,
+            String(defaults.minutes).length   === 1 ? '0' + (defaults.minutes)   : defaults.minutes,
+            String(defaults.seconds).length   === 1 ? '0' + (defaults.seconds)   : defaults.seconds
+        );
 
         return Date.parse(str);
+
+        //
+        // Support functions
+        //
+        function isMonth(str)
+        {
+            var res = str.toLowerCase().match(months_regex);
+
+            return res ? months[res[0]] : false;
+        }
     };
 
 
@@ -2928,32 +3374,6 @@
 
 
 
-    /**
-    * This function determines whther a canvas is fixed (CSS positioning) or not. If not it returns
-    * false. If it is then the element that is fixed is returned (it may be a parent of the canvas).
-    * 
-    * @return Either false or the fixed positioned element
-    */
-    RG.isFixed = function (canvas)
-    {
-        var obj = canvas;
-        var i = 0;
-
-        while (obj && obj.tagName.toLowerCase() != 'body' && i < 99) {
-
-            if (obj.style.position == 'fixed') {
-                return obj;
-            }
-            
-            obj = obj.offsetParent;
-        }
-
-        return false;
-    };
-
-
-
-
 
 
 
@@ -3032,31 +3452,36 @@
         }
 
         if (typeof RG.SVG.measuretext_cache == 'object' && RG.SVG.measuretext_cache[str]) {
+
             return RG.SVG.measuretext_cache[str];
         }
         
-        if (!RG.SVG.measuretext_cache['text-div']) {
-            var div = document.createElement('DIV');
-                div.style.position = 'absolute';
-                div.style.top      = '-100px';
-                div.style.left     = '-100px';
-            document.body.appendChild(div);
+        if (!RG.SVG.measuretext_cache['text-span']) {
+            var span = document.createElement('SPAN');
+                span.style.position = 'absolute';
+                //span.style.backgroundColor = 'red';
+                span.style.padding    = 0;
+                span.style.display    = 'inline';
+                span.style.top        = '-200px';
+                span.style.left       = '-200px';
+                span.style.lineHeight = '1em';
+            document.body.appendChild(span);
             
             // Now store the newly created DIV
-            RG.SVG.measuretext_cache['text-div'] = div;
+            RG.SVG.measuretext_cache['text-span'] = span;
 
-        } else if (RG.SVG.measuretext_cache['text-div']) {
-            var div = RG.SVG.measuretext_cache['text-div'];
+        } else if (RG.SVG.measuretext_cache['text-span']) {
+            var span = RG.SVG.measuretext_cache['text-span'];
         }
 
-        div.innerHTML        = text.replace(/\r\n/g, '<br />');
-        div.style.fontFamily = font;
-        div.style.fontWeight = bold ? 'bold' : 'normal';
-        div.style.fontSize   = size + 'pt';
+        span.innerHTML        = text.replace(/\r\n/g, '<br />');
+        span.style.fontFamily = font;
+        span.style.fontWeight = bold ? 'bold' : 'normal';
+        span.style.fontSize   = size + 'pt';
         
-        var sizes = [div.offsetWidth, div.offsetHeight];
+        var sizes = [span.offsetWidth, span.offsetHeight];
 
-        //document.body.removeChild(div);
+        //document.body.removeChild(span);
         RG.SVG.measuretext_cache[str] = sizes;
         
         return sizes;
@@ -3156,6 +3581,8 @@
     //
     RG.SVG.attribution = function (obj)
     {
+        return;
+/*
         var prop = obj.properties;
 
         if (!prop.attribution && typeof prop.attribution !== 'undefined') {
@@ -3166,9 +3593,12 @@
         // Create the A tag
         var a = RG.SVG.create({
             svg: obj.svg,
+            parent: obj.svg.all,
             type: 'a',
             attr: {
-                'xlink:href': prop.attributionHref || 'http://www.rgraph.net'
+                rel: 'nofollow',
+                target: '_blank',
+                'xlink:href': prop.attributionHref || 'http://www.rgraph.net/'
             }
         });
 
@@ -3196,7 +3626,7 @@
         var text = RG.SVG.text({
             object: obj,
             parent: a,
-            text:   typeof prop.attributionText === 'string' ? prop.attributionText : 'RGraph.net',
+            text:   typeof prop.attributionText === 'string' ? prop.attributionText : 'JavaScript charts with RGraph',
             x:      x,
             y:      y,
             halign: prop.attributionHalign || 'right',
@@ -3207,6 +3637,23 @@
             italic: prop.attributionItalic,
             bold:   prop.attributionBold
         });
+*/
+    };
+
+
+
+
+
+
+
+
+    /**
+    * Parse a gradient and returns the various parts
+    * 
+    * @param string str The gradient string
+    */
+    RG.SVG.parseGradient = function (str)
+    {
     };
 
 
@@ -3223,12 +3670,140 @@
     * @param number max The maximum value
     * @param number     OPTIONAL Number of decimal places
     */
-    RG.SVG.random = function (min, max)
+    RG.SVG.random = function (opt)
     {
-        var dp = arguments[2] ? arguments[2] : 0;
-        var r  = ma.random();
-        
+        var min = opt.min,
+            max = opt.max,
+            dp  = opt.dp || opt.decimals || 0,
+            r   = ma.random();
+
         return Number((((max - min) * r) + min).toFixed(dp));
+    };
+
+
+
+
+
+
+
+
+    /**
+    * Fill an array full of random numbers
+    */
+    RG.SVG.arrayRand    =
+    RG.SVG.arrayRandom  =
+    RG.SVG.random.array = function (opt)
+    {
+        var num = opt.num,
+            min = opt.min,
+            max = opt.max,
+            dp  = opt.dp || opt.decimals || 0;
+
+        for(var i=0,arr=[]; i<num; i+=1) {
+            arr.push(RG.SVG.random({min: min, max: max, dp: dp}));
+        }
+        
+        return arr;
+    };
+
+
+
+
+
+
+
+
+    //
+    // This function is called by each objects setter so that common BC
+    // and adjustments are centralised. And there's less typing for me too.
+    //
+    // @param object opt An object of options to the function, which are:
+    //                    object: The chart object
+    //                    name:   The name of the config parameter
+    //                    value:  The value thats being set
+    //
+    RG.SVG.commonSetter = function (opt)
+    {
+        var obj   = opt.object,
+            name  = opt.name,
+            value = opt.value;
+
+        // The default event for tooltips is click
+        if (name === 'tooltipsEvent'&& value !== 'click' && value !== 'mousemove') {
+            value = 'click';
+        }
+
+        return {
+            name:  name,
+            value: value
+        };
+    };
+
+
+
+
+
+
+
+
+    //
+    // Generates logs for... log charts
+    //
+    // @param object opt The options:
+    //                     o num  The number
+    //                     o base The base
+    //
+    RG.SVG.log = function (opt)
+    {
+        var num  = opt.num,
+            base = opt.base;
+
+        return ma.log(num) / (base ? ma.log(base) : 1);
+    };
+
+
+
+
+
+
+
+
+    RG.SVG.donut = function (opt)
+    {
+        var arcPath1 = RG.SVG.TRIG.getArcPath3({
+            cx: opt.cx,
+            cy: opt.cy,
+            r: opt.outerRadius,
+            start: 0,
+            end: RG.SVG.TRIG.TWOPI,
+            anticlockwise: false,
+            lineto: false
+        });
+
+        var arcPath2 = RG.SVG.TRIG.getArcPath3({
+            cx: opt.cx,
+            cy: opt.cy,
+            r: opt.innerRadius,
+            start: RG.SVG.TRIG.TWOPI,
+            end: 0,
+            anticlockwise: true,
+            lineto: false
+        });
+
+        //
+        // Create the red circle
+        //
+        var path = RG.SVG.create({
+            svg: opt.svg,
+            type: 'path',
+            attr: {
+                d: arcPath1 + arcPath2,
+                stroke: opt.stroke,
+                fill: opt.fill
+            }
+        });
+        
+        return path;
     };
 
 

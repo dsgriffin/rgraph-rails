@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -26,6 +26,56 @@
 
     RG.SVG.SemiCircularProgress = function (conf)
     {
+        //
+        // A setter that the constructor uses (at the end)
+        // to set all of the properties
+        //
+        // @param string name  The name of the property to set
+        // @param string value The value to set the property to
+        //
+        this.set = function (name, value)
+        {
+            if (arguments.length === 1 && typeof name === 'object') {
+                for (i in arguments[0]) {
+                    if (typeof i === 'string') {
+                    
+                        var ret = RG.SVG.commonSetter({
+                            object: this,
+                            name:   i,
+                            value:  arguments[0][i]
+                        });
+                        
+                        name  = ret.name;
+                        value = ret.value;
+
+                        this.set(name, value);
+                    }
+                }
+            } else {
+
+                    
+                var ret = RG.SVG.commonSetter({
+                    object: this,
+                    name:   name,
+                    value:  value
+                });
+                
+                name  = ret.name;
+                value = ret.value;
+
+                this.properties[name] = value;
+            }
+
+            return this;
+        };
+
+
+
+
+
+
+
+
         this.min             = RG.SVG.stringsToNumbers(conf.min);
         this.max             = RG.SVG.stringsToNumbers(conf.max);
         this.value           = RG.SVG.stringsToNumbers(conf.value);
@@ -143,7 +193,7 @@
             titleX: null,
             titleY: null,
             titleHalign: 'center',
-            titleValign: 'bottom',
+            titleValign: null,
             titleColor:  'black',
             titleFont:   null,
             titleBold:   false,
@@ -154,7 +204,7 @@
             titleSubtitleX: null,
             titleSubtitleY: null,
             titleSubtitleHalign: 'center',
-            titleSubtitleValign: 'top',
+            titleSubtitleValign: null,
             titleSubtitleColor:  '#aaa',
             titleSubtitleFont:   null,
             titleSubtitleBold:   false,
@@ -163,10 +213,10 @@
             attribution:        true,
             attributionX:       null,
             attributionY:       null,
-            attributionHref:    'http://www.rgraph.net/svg/index.html',
+            attributionHref:    null,// Default is set in RGraph.svg.common.core.js
             attributionHalign:  'right',
             attributionValign:  'bottom',
-            attributionSize:    8,
+            attributionSize:    7,
             attributionColor:   'gray',
             attributionFont:    'sans-serif',
             attributionItalic:  false,
@@ -194,31 +244,6 @@
 
 
         var prop = this.properties;
-
-
-
-
-        //
-        // A setter that the constructor uses (at the end)
-        // to set all of the properties
-        //
-        // @param string name  The name of the property to set
-        // @param string value The value to set the property to
-        //
-        this.set = function (name, value)
-        {
-            if (arguments.length === 1 && typeof name === 'object') {
-                for (i in arguments[0]) {
-                    if (typeof i === 'string') {
-                        this.set(i, arguments[0][i]);
-                    }
-                }
-            } else {
-                this.properties[name] = value;
-            }
-
-            return this;
-        };
 
 
 
@@ -270,19 +295,12 @@
             
             // Set the width of the meter
             this.progressWidth = prop.width || (this.radius / 3);
-
-
-            /**
-            * Parse the colors. This allows for simple gradient syntax
-            *
-            * ** must be after the cx/cy/r has been calcuated **
-            */
-            if (!this.colorsParsed) {
-                this.parseColors();
-
-                // Don't want to do this again
-                this.colorsParsed = true;
-            }
+            
+            
+            
+            // Parse the colors for gradients
+            RG.SVG.resetColorsToOriginalValues({object:this});
+            this.parseColors();
 
 
 
@@ -320,8 +338,10 @@
                 //
                 // Add tooltip event listeners
                 //
-                this.path['on' + prop.tooltipsEvent] = function (e)
+                this.path.addEventListener(prop.tooltipsEvent, function (e)
                 {
+                    obj.removeHighlight();
+                
                     // Show the tooltip
                     RG.SVG.tooltip({
                         object: obj,
@@ -334,24 +354,22 @@
                     
                     // Highlight the rect that has been clicked on
                     obj.highlight(e.target);
-
-                };
+                }, false);
                 
-                this.path.onmousemove = function (e)
+                this.path.addEventListener('mousemove', function (e)
                 {
                     e.target.style.cursor = 'pointer'
-                };
+                }, false);
             }
 
 
             // Add the event listener that clears the highlight if
             // there is any. Must be MOUSEDOWN (ie before the click event)
-            RG.SVG.SSP_window_mousedown_listener = function (e)
-            {
-                RG.SVG.removeHighlight(obj);
-            }
             var obj = this;
-            doc.body.addEventListener('mousedown', RG.SVG.SSP_body_mousedown_listener, false);
+            doc.body.addEventListener('mousedown', function (e)
+            {
+                obj.removeHighlight();
+            }, false);
 
 
 
@@ -400,6 +418,7 @@
             RG.SVG.create({
                 svg: this.svg,
                 type: 'path',
+                parent: this.svg.all,
                 attr: {
                     d: path + " L " + (this.centerx + this.radius - this.progressWidth)  + " " + this.centery + path2 + " L " + (this.centerx - this.radius) + " " + this.centery,
                     fill:           prop.backgroundFill || prop.colors[0],
@@ -455,6 +474,7 @@
             var path = RG.SVG.create({
                 svg: this.svg,
                 type: 'path',
+                parent: this.svg.all,
                 attr: {
                     d: path + " L{1} {2} ".format(
                         path2[1],
@@ -496,6 +516,7 @@
 
                 RG.SVG.text({
                     object: this,
+                    parent: this.svg.all,
                     text: typeof prop.labelsMinSpecific === 'string' ? prop.labelsMinSpecific : min,
                     x: this.centerx - this.radius + (this.progressWidth / 2),
                     y: this.height - prop.gutterBottom + 5,
@@ -531,6 +552,7 @@
 
                 RG.SVG.text({
                     object: this,
+                    parent: this.svg.all,
                     text: typeof prop.labelsMaxSpecific === 'string' ? prop.labelsMaxSpecific : max,
                     x: this.centerx + this.radius - (this.progressWidth / 2),
                     y: this.height - prop.gutterBottom + 5,
@@ -565,6 +587,7 @@
 
                 RG.SVG.text({
                     object: this,
+                    parent: this.svg.all,
                     text:   typeof prop.labelsCenterSpecific === 'string' ? prop.labelsCenterSpecific : center,
                     x:      this.centerx,
                     y:      this.centery,
@@ -597,9 +620,10 @@
             // installed
             this.removeHighlight();
 
-            this.highlightNode = RG.SVG.create({
+            var highlight = RG.SVG.create({
                 svg: this.svg,
                 type: 'path',
+                parent: this.svg.all,
                 attr: {
                     d: this.path.getAttribute('d'),
                     fill: prop.highlightFill,
@@ -607,6 +631,9 @@
                     'stroke-width': prop.highlightLinewidth
                 }
             });
+            
+            // Store the highlight node in the registry
+            RG.SVG.REG.set('highlight', highlight);
 
             // Add the event listener that clears the highlight path if
             // there is any. Must be MOUSEDOWN (ie before the click event)
@@ -631,9 +658,11 @@
         */
         this.removeHighlight = function ()
         {
-            if (this.highlightNode) {
-                this.highlightNode.parentNode.removeChild(this.highlightNode);
-                this.highlightNode = null;
+            var highlight = RG.SVG.REG.get('highlight');
+
+            if (highlight) {
+                highlight.parentNode.removeChild(highlight);
+                highlight = null;
             }
         };
 
@@ -787,6 +816,26 @@
             func(this);
 
             return this;
+        };
+
+
+
+
+
+
+
+
+        //
+        // Remove highlight from the chart (tooltips)
+        //
+        this.removeHighlight = function ()
+        {
+            var highlight = RG.SVG.REG.get('highlight');
+            if (highlight && highlight.parentNode) {
+                highlight.parentNode.removeChild(highlight);
+            }
+            
+            RG.SVG.REG.set('highlight', null);
         };
 
 

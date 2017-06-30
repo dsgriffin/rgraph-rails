@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -26,6 +26,55 @@
 
     RG.SVG.Line = function (conf)
     {
+        //
+        // A setter that the constructor uses (at the end)
+        // to set all of the properties
+        //
+        // @param string name  The name of the property to set
+        // @param string value The value to set the property to
+        //
+        this.set = function (name, value)
+        {
+            if (arguments.length === 1 && typeof name === 'object') {
+                for (i in arguments[0]) {
+                    if (typeof i === 'string') {
+                    
+                        var ret = RG.SVG.commonSetter({
+                            object: this,
+                            name:   i,
+                            value:  arguments[0][i]
+                        });
+                        
+                        name  = ret.name;
+                        value = ret.value;
+
+                        this.set(name, value);
+                    }
+                }
+            } else {
+                    
+                var ret = RG.SVG.commonSetter({
+                    object: this,
+                    name:   name,
+                    value:  value
+                });
+                
+                name  = ret.name;
+                value = ret.value;
+
+                this.properties[name] = value;
+            }
+
+            return this;
+        };
+
+
+
+
+
+
+
+
         this.id               = conf.id;
         this.uid             = RG.SVG.createUID();
         this.container       = document.getElementById(this.id);
@@ -65,18 +114,27 @@
             gutterTop:    35,
             gutterBottom: 35,
 
-            backgroundGrid: true,
-            backgroundGridColor: '#ddd',
-            backgroundGridLinewidth: 1,
-            backgroundGridHlines: true,
-            backgroundGridHlinesCount: null,
-            backgroundGridVlines: true,
-            backgroundGridVlinesCount: null,
-            backgroundGridBorder: true,
+            backgroundColor:            null,
+            backgroundImage:            null,
+            backgroundImageStretch:     true,
+            backgroundImageAspect:      'none',
+            backgroundImageOpacity:     null,
+            backgroundImageX:           null,
+            backgroundImageY:           null,
+            backgroundImageW:           null,
+            backgroundImageH:           null,
+            backgroundGrid:             true,
+            backgroundGridColor:        '#ddd',
+            backgroundGridLinewidth:    1,
+            backgroundGridHlines:       true,
+            backgroundGridHlinesCount:  null,
+            backgroundGridVlines:       true,
+            backgroundGridVlinesCount:  null,
+            backgroundGridBorder:       true,
             
             colors:           ['red', '#0f0', 'blue', '#ff0', '#0ff', 'green'],
             
-            fill:               false,
+            filled:             false,
             filledColors:       [],
             filledClick:        null,
             filledOpacity:      1,
@@ -88,13 +146,11 @@
             yaxisTickmarks:       true,
             yaxisTickmarksLength: 3,
             yaxisColor:           'black',
-            
             yaxisScale:           true,
             yaxisLabels:          null,
             yaxisLabelsOffsetx:   0,
             yaxisLabelsOffsety:   0,
             yaxisLabelsCount:     5,
-            
             yaxisUnitsPre:        '',
             yaxisUnitsPost:       '',
             yaxisStrict:          false,
@@ -108,7 +164,7 @@
 
             xaxis:                true,
             xaxisTickmarks:       true,
-            xaxisTickmarksLength: 3,
+            xaxisTickmarksLength: 5,
             xaxisLabels:          null,
             xaxisLabelsOffsetx:   0,
             xaxisLabelsOffsety:   0,
@@ -157,6 +213,7 @@
             labelsAboveOffsety:           -10,
             labelsAboveHalign:            'center',
             labelsAboveValign:            'bottom',
+            labelsAboveSpecific:          null,
 
             shadow: false,
             shadowOffsetx: 2,
@@ -171,7 +228,7 @@
             titleX: null,
             titleY: null,
             titleHalign: 'center',
-            titleValign: 'bottom',
+            titleValign: null,
             titleColor:  null,
             titleFont:   null,
             titleBold:   false,
@@ -182,19 +239,36 @@
             titleSubtitleX: null,
             titleSubtitleY: null,
             titleSubtitleHalign: 'center',
-            titleSubtitleValign: 'top',
+            titleSubtitleValign: null,
             titleSubtitleColor:  '#aaa',
             titleSubtitleFont:   null,
             titleSubtitleBold:   false,
             titleSubtitleItalic: false,
-            
+
+
+
+
+            key:            null,
+            keyColors:      null,
+            keyOffsetx:     0,
+            keyOffsety:     0,
+            keyTextOffsetx: 0,
+            keyTextOffsety: -1,
+            keyTextSize:    null,
+            keyTextBold:    null,
+            keyTextItalic:  null,
+
+
+
+
+
             attribution:        true,
             attributionX:       null,
             attributionY:       null,
-            attributionHref:    'http://www.rgraph.net/svg/index.html',
+            attributionHref:    null,// Default is set in RGraph.svg.common.core.js
             attributionHalign:  'right',
             attributionValign:  'bottom',
-            attributionSize:    8,
+            attributionSize:    7,
             attributionColor:   'gray',
             attributionFont:    'sans-serif',
             attributionItalic:  false,
@@ -216,31 +290,6 @@
 
 
         var prop = this.properties;
-
-
-
-
-        //
-        // A setter that the constructor uses (at the end)
-        // to set all of the properties
-        //
-        // @param string name  The name of the property to set
-        // @param string value The value to set the property to
-        //
-        this.set = function (name, value)
-        {
-            if (arguments.length === 1 && typeof name === 'object') {
-                for (i in arguments[0]) {
-                    if (typeof i === 'string') {
-                        this.set(i, arguments[0][i]);
-                    }
-                }
-            } else {
-                this.properties[name] = value;
-            }
-
-            return this;
-        };
 
 
 
@@ -273,16 +322,9 @@
 
 
 
-            /**
-            * Parse the colors. This allows for simple gradient syntax
-            */
-            if (!this.colorsParsed) {
-
-                this.parseColors();
-                
-                // Don't want to do this again
-                this.colorsParsed = true;
-            }
+            // Parse the colors for gradients
+            RG.SVG.resetColorsToOriginalValues({object:this});
+            this.parseColors();
             
             // Clear the coords arrays
             this.coords       = [];
@@ -398,6 +440,27 @@
 
             // Always redraw the liines now so that tickmarks are drawn
             this.redrawLines();
+
+
+
+
+
+
+
+
+            
+            
+            // Draw the key
+            if (typeof prop.key !== null && RG.SVG.drawKey) {
+                RG.SVG.drawKey(this);
+            } else if (!RGraph.SVG.isNull(prop.key)) {
+                alert('The drawKey() function does not exist - have you forgotten to include the key library?');
+            }
+
+
+
+
+
 
 
             // Draw the labelsAbove labels
@@ -570,6 +633,7 @@
                 // Add the fill path to the scene
                 var fillPathObject = RG.SVG.create({
                     svg: this.svg,
+                    parent: this.svg.all,
                     type: 'path',
                     attr: {
                         d: fillPath.join(' '),
@@ -585,14 +649,15 @@
                 if (prop.filledClick) {
                     
                     var obj = this;
-                    fillPathObject.onclick = function (e)
+                    fillPathObject.addEventListener('click', function (e)
                     {
                         prop.filledClick(e, obj, index);
-                    };
-                    fillPathObject.onmousemove = function (e)
+                    }, false);
+                    
+                    fillPathObject.addEventListener('mousemove', function (e)
                     {
                         e.target.style.cursor = 'pointer';
-                    }
+                    }, false);
                 }
             }
 
@@ -643,6 +708,7 @@
 
                 var line = RG.SVG.create({
                     svg: this.svg,
+                    parent: this.svg.all,
                     type: 'path',
                     attr: {
                         d: str,
@@ -673,6 +739,7 @@
 
                 var line = RG.SVG.create({
                     svg: this.svg,
+                    parent: this.svg.all,
                     type: 'path',
                     attr: {
                         d: path2,
@@ -696,6 +763,7 @@
 
                 var group = RG.SVG.create({
                     svg: this.svg,
+                    parent: this.svg.all,
                     type: 'g',
                     attr: {
                         'fill': 'transparent',
@@ -707,9 +775,9 @@
                 });
                 
             
-                for (var i=0; i<this.coords[index].length; ++i,++this.tooltipsSequentialIndex) {
-
-                    if (this.coords[index][i][0] && this.coords[index][i][1]) {
+                //for (var i=0; i<this.coords[index].length; ++i,++this.tooltipsSequentialIndex) {
+                for (var i=0; i<this.coords[index].length && this.tooltipsSequentialIndex < prop.tooltips.length; ++i,++this.tooltipsSequentialIndex) {
+                    if (prop.tooltips[this.tooltipsSequentialIndex] && this.coords[index][i][0] && this.coords[index][i][1]) {
 
                         var hotspot = RG.SVG.create({
                             svg: this.svg,
@@ -758,6 +826,7 @@
                                 // Highlight the chart here
                                 var outer_highlight1 = RG.SVG.create({
                                     svg: obj.svg,
+                                    parent: obj.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: obj.coords[dataset][index][0],
@@ -774,6 +843,7 @@
 
                                 var outer_highlight2 = RG.SVG.create({
                                     svg: obj.svg,
+                                    parent: obj.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: obj.coords[dataset][index][0],
@@ -790,6 +860,7 @@
 
                                 var inner_highlight1 = RG.SVG.create({
                                     svg: obj.svg,
+                                    parent: obj.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: obj.coords[dataset][index][0],
@@ -805,6 +876,7 @@
 
                                 var inner_highlight2 = RG.SVG.create({
                                     svg: obj.svg,
+                                    parent: obj.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: obj.coords[dataset][index][0],
@@ -858,6 +930,7 @@
                             if (prop.tickmarksStyle === 'filledcircle' || (i === 0 || i === data.length - 1) ) {
                                 var circle = RG.SVG.create({
                                     svg: this.svg,
+                                    parent: this.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: coords[index][i][0],
@@ -880,6 +953,7 @@
 
                                 var outerCircle = RG.SVG.create({
                                     svg: this.svg,
+                                    parent: this.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: coords[index][i][0],
@@ -893,6 +967,7 @@
 
                                 var innerCircle = RG.SVG.create({
                                     svg: this.svg,
+                                    parent: this.svg.all,
                                     type: 'circle',
                                     attr: {
                                         cx: coords[index][i][0],
@@ -916,6 +991,7 @@
                             
                                 var rect = RG.SVG.create({
                                     svg: this.svg,
+                                    parent: this.svg.all,
                                     type: 'rect',
                                     attr: {
                                         x:      coords[index][i][0] - half,
@@ -942,6 +1018,7 @@
                             
                                 var rect = RG.SVG.create({
                                     svg: this.svg,
+                                    parent: this.svg.all,
                                     type: 'rect',
                                     attr: {
                                         x:      coords[index][i][0] - half,
@@ -999,6 +1076,7 @@
 
                     RG.SVG.create({
                         svg: this.svg,
+                        parent: this.svg.all,
                         type: 'path',
                         attr: {
                             d: path,
@@ -1051,6 +1129,7 @@
 
                     RG.SVG.create({
                         svg: this.svg,
+                        parent: this.svg.all,
                         type: 'path',
                         attr: {
                             d: path,
@@ -1267,7 +1346,8 @@
                     colors:              RG.SVG.arrayClone(prop.colors),
                     filledColors:        RG.SVG.arrayClone(prop.filledColors),
                     backgroundGridColor: RG.SVG.arrayClone(prop.backgroundGridColor),
-                    highlightFill:       RG.SVG.arrayClone(prop.highlightFill)
+                    highlightFill:       RG.SVG.arrayClone(prop.highlightFill),
+                    backgroundColor:     RG.SVG.arrayClone(prop.backgroundColor)
                 }
             }
 
@@ -1298,6 +1378,7 @@
 
             prop.backgroundGridColor = RG.SVG.parseColorLinear({object: this, color: prop.backgroundGridColor});
             prop.highlightFill       = RG.SVG.parseColorLinear({object: this, color: prop.highlightFill});
+            prop.backgroundColor     = RG.SVG.parseColorLinear({object: this, color: prop.backgroundColor});
         };
 
 
@@ -1314,9 +1395,12 @@
         {
             // Go through the above labels
             if (prop.labelsAbove) {
+            
+                var data_seq = RG.SVG.arrayLinearize(this.data),
+                    seq      = 0;
 
-                for (var dataset=0; dataset<this.coords.length; ++dataset) {
-                    for (var i=0; i<this.coords[dataset].length; ++i) {
+                for (var dataset=0; dataset<this.coords.length; ++dataset,seq++) {
+                    for (var i=0; i<this.coords[dataset].length; ++i,seq++) {
     
                         var str = RG.SVG.numberFormat({
                             object:    this,
@@ -1327,9 +1411,17 @@
                             thousand:  typeof prop.labelsAboveThousand  === 'string'   ? prop.labelsAboveThousand  : null,
                             formatter: typeof prop.labelsAboveFormatter === 'function' ? prop.labelsAboveFormatter : null
                         });
+                        
+                        // Facilitate labelsAboveSpecific
+                        if (prop.labelsAboveSpecific && prop.labelsAboveSpecific.length && (typeof prop.labelsAboveSpecific[seq] === 'string' || typeof prop.labelsAboveSpecific[seq] === 'number') ) {
+                            str = prop.labelsAboveSpecific[seq];
+                        } else if ( prop.labelsAboveSpecific && prop.labelsAboveSpecific.length && typeof prop.labelsAboveSpecific[seq] !== 'string' && typeof prop.labelsAboveSpecific[seq] !== 'number') {
+                            continue;
+                        }
 
                         RG.SVG.text({
                             object:     this,
+                            parent: this.svg.all,
                             text:       str,
                             x:          parseFloat(this.coords[dataset][i][0]) + prop.labelsAboveOffsetx,
                             y:          parseFloat(this.coords[dataset][i][1]) + prop.labelsAboveOffsety,
@@ -1344,6 +1436,9 @@
                             padding:    prop.labelsAboveBackgroundPadding || 0
                         });
                     }
+                    
+                    // Necessary so that the seq doesn't get incremented twice
+                    seq--;
                 }
             }
         };
@@ -1420,7 +1515,7 @@
             // Create the clip area
             var clipPath = RG.SVG.create({
                 svg: this.svg,
-                parent: this.defs,
+                parent: this.svg.defs,
                 type: 'clipPath',
                 attr: {
                     id: 'trace-effect-clip'

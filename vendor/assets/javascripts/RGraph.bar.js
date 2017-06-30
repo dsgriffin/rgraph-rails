@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -97,7 +97,7 @@
             'chart.axis.color':             'black',
             'chart.axis.linewidth':         1,
             'chart.gutter.top':             25,
-            'chart.gutter.bottom':          30,
+            'chart.gutter.bottom':          35,
             'chart.gutter.left':            25,
             'chart.gutter.right':           25,
             'chart.labels':                 null,
@@ -613,6 +613,14 @@
             if (prop['chart.labels.ingraph']) {
                 RG.DrawInGraphLabels(this);
             }
+            
+            
+            //
+            // Add the attribution (if textAccessible is enabled
+            //
+            //RG.attribution(this);
+
+
 
 
             /**
@@ -3721,13 +3729,13 @@ co.lineTo(
         for (var i=0; i<this.objects.length; ++i) {
             if (this.objects[i].properties['chart.combinedchart.effect']) {
 
-                var options = this.objects[i].properties['chart.combinedchart.effect.options'] ? eval('(' + this.objects[i].properties['chart.combinedchart.effect.options'] + ')') : null;
+                // The options must be given as a string because of the
+                // RGraph configuration system
+                var options  = this.objects[i].properties['chart.combinedchart.effect.options'] ? eval('(' + this.objects[i].properties['chart.combinedchart.effect.options'] + ')') : null,
+                    callback = this.objects[i].properties['chart.combinedchart.effect.callback'],
+                    func     = this.objects[i].properties['chart.combinedchart.effect'];
 
-                (this.objects[i][this.objects[i].properties['chart.combinedchart.effect']])
-                (
-                    options,
-                    this.objects[i].properties['chart.combinedchart.effect.callback']
-                )
+                (this.objects[i][func])(options, callback);
             } else {
                 this.objects[i].draw();
             }

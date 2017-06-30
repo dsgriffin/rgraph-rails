@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -367,7 +367,7 @@
 
             this.coords[0] = [
                 this.x,
-                this.scaleBottomY - this.height,
+                this.getYCoord(this.value),
                 this.width,
                 this.height
             ];
@@ -934,11 +934,11 @@
                 return null;
             }
 
-            var coord  = (this.scaleBottomY - this.scaleTopY) / (this.max  - this.min);
-                coord *= value;
-                coord  = this.scaleBottomY - coord;
+            var y = ma.abs(value - this.min) / ma.abs(this.max - this.min)
+                y = y * (this.scaleBottomY - this.scaleTopY);
 
-            return coord;
+
+            return this.scaleBottomY - y;
         };
 
 
@@ -1085,6 +1085,7 @@
                 frames    = opt.frames ? opt.frames : 30,
                 origValue = Number(obj.currentValue),
                 newValue  = obj.value;
+
             newValue = ma.min(newValue, this.max);
             newValue = ma.max(newValue, this.min);
             

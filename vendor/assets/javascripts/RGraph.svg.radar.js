@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -26,6 +26,56 @@
 
     RG.SVG.Radar = function (conf)
     {
+        //
+        // A setter that the constructor uses (at the end)
+        // to set all of the properties
+        //
+        // @param string name  The name of the property to set
+        // @param string value The value to set the property to
+        //
+        this.set = function (name, value)
+        {
+            if (arguments.length === 1 && typeof name === 'object') {
+                for (i in arguments[0]) {
+                    if (typeof i === 'string') {
+                    
+                        var ret = RG.SVG.commonSetter({
+                            object: this,
+                            name:   i,
+                            value:  arguments[0][i]
+                        });
+                        
+                        name  = ret.name;
+                        value = ret.value;
+
+                        this.set(name, value);
+                    }
+                }
+            
+            } else {
+
+                var ret = RG.SVG.commonSetter({
+                    object: this,
+                    name:   name,
+                    value:  value
+                });
+                
+                name  = ret.name;
+                value = ret.value;
+
+                this.properties[name] = value;
+            }
+
+            return this;
+        };
+
+
+
+
+
+
+
+
         this.id              = conf.id;
         this.uid             = RG.SVG.createUID();
         this.container       = document.getElementById(this.id);
@@ -47,7 +97,7 @@
         this.shadowNodes     = [];
         this.max             = 0;
         this.redraw          = false;
-        this.highlight_hotspot = null;
+        this.highlight_node  = null;
         
         // Add this object to the ObjectRegistry
         RG.SVG.OR.add(this);
@@ -71,10 +121,11 @@
             gutterBottom:  35,
             
             backgroundGrid: true,
-            backgroundGridColor: '#ddd',
-            backgroundGridRadialsCount: null,
+            backgroundGridColor:            '#ddd',
+            backgroundGridRadialsCount:     null,
             backgroundGridConcentricsCount: 5,
-            backgroundGridLinewidth: 1,
+            backgroundGridLinewidth:        1,
+            backgroundGridPoly:             true,
 
             colors: [
                 'red', 'black', 'orange', 'green', '#6ff', '#ccc',
@@ -131,7 +182,7 @@
             titleX: null,
             titleY: null,
             titleHalign: 'center',
-            titleValign: 'bottom',
+            titleValign: null,
             titleColor:  'black',
             titleFont:   null,
             titleBold:   false,
@@ -142,7 +193,7 @@
             titleSubtitleX: null,
             titleSubtitleY: null,
             titleSubtitleHalign: 'center',
-            titleSubtitleValign: 'top',
+            titleSubtitleValign: null,
             titleSubtitleColor:  '#aaa',
             titleSubtitleFont:   null,
             titleSubtitleBold:   false,
@@ -155,14 +206,26 @@
             shadowOffsety: 2,
             shadowBlur: 2,
             shadowOpacity: 0.25,
+
+
+
+            key:            null,
+            keyColors:      null,
+            keyOffsetx:     0,
+            keyOffsety:     0,
+            keyTextOffsetx: 0,
+            keyTextOffsety: -1,
+            keyTextSize:    null,
+            keyTextBold:    null,
+            keyTextItalic:  null,
             
             attribution:        true,
             attributionX:       null,
             attributionY:       null,
-            attributionHref:    'http://www.rgraph.net/svg/index.html',
+            attributionHref:    null,// Default is set in RGraph.svg.common.core.js
             attributionHalign:  'right',
             attributionValign:  'bottom',
-            attributionSize:    8,
+            attributionSize:    7,
             attributionColor:   'gray',
             attributionFont:    'sans-serif',
             attributionItalic:  false,
@@ -185,31 +248,6 @@
 
 
         var prop = this.properties;
-
-
-
-
-        //
-        // A setter that the constructor uses (at the end)
-        // to set all of the properties
-        //
-        // @param string name  The name of the property to set
-        // @param string value The value to set the property to
-        //
-        this.set = function (name, value)
-        {
-            if (arguments.length === 1 && typeof name === 'object') {
-                for (i in arguments[0]) {
-                    if (typeof i === 'string') {
-                        this.set(i, arguments[0][i]);
-                    }
-                }
-            } else {
-                this.properties[name] = value;
-            }
-
-            return this;
-        };
 
 
 
@@ -339,17 +377,9 @@
 
 
 
-            /**
-            * Parse the colors. This allows for simple gradient syntax
-            * 
-            * ** must be after the cx/cy/r has been calcuated **
-            */
-            if (!this.colorsParsed) {
-                this.parseColors();
-                
-                // Don't want to do this again
-                this.colorsParsed = true;
-            }
+            // Parse the colors for gradients
+            RG.SVG.resetColorsToOriginalValues({object:this});
+            this.parseColors();
 
             //
             // Get the scale
@@ -403,6 +433,19 @@
             this.addTooltipHotspots();
 
 
+
+
+
+
+            // Draw the key
+            if (typeof prop.key !== null && RG.SVG.drawKey) {
+                RG.SVG.drawKey(this);
+            } else if (!RGraph.SVG.isNull(prop.key)) {
+                alert('The drawKey() function does not exist - have you forgotten to include the key library?');
+            }
+
+
+
             
             
             // Add the attribution link. If you're adding this elsewhere on your page/site
@@ -427,9 +470,9 @@
             // Add the event listener that clears the highlight if
             // there is any. Must be MOUSEDOWN (ie before the click event)
             var obj = this;
-            document.body.addEventListener('mousedown', function (e)
+            doc.body.addEventListener('mousedown', function (e)
             {
-                RG.SVG.removeHighlight(obj);
+                obj.hideHighlight(obj);
             }, false);
 
 
@@ -459,6 +502,7 @@
                 // Create the background grid group tag
                 var grid = RG.SVG.create({
                     svg: this.svg,
+                    parent: this.svg.all,
                     type: 'g',
                     attr: {
                         className: 'rgraph_radar_grid',
@@ -468,7 +512,8 @@
                 });
             
                 // Draw the concentric "rings" grid lines that are
-                // arranged around the centerx/centery
+                // arranged around the centerx/centery along with
+                // the radials that eminate from the center outwards
 
                 var origin      = 0 - (RG.SVG.TRIG.PI / 2),
                     radials     = (typeof prop.backgroundGridRadialsCount === 'number' ? prop.backgroundGridRadialsCount :  this.data[0].length),
@@ -518,36 +563,69 @@
 
                 // Draw the concentrics
                 if (concentrics > 0) {
-                    for (var j=1; j<=concentrics; j++) {
-                        for (var i=0,len=radials,path=[]; i<len; ++i) {
-    
-                            var coords = RG.SVG.TRIG.toCartesian({
-                                cx: this.centerx,
-                                cy: this.centery,
-                                r: this.radius * (j/concentrics),
-                                angle: origin + (i * step)
-                            });
+
+                    if (prop.backgroundGridPoly) {
+                        for (var j=1; j<=concentrics; j++) {
+                            for (var i=0,len=radials,path=[]; i<len; ++i) {
         
-                            path.push('{1} {2} {3}'.format(
-                                i === 0 ? 'M' : 'L',
-                                coords.x,
-                                coords.y
-                            ));
-    
-                        }
+                                var coords = RG.SVG.TRIG.toCartesian({
+                                    cx: this.centerx,
+                                    cy: this.centery,
+                                    r: this.radius * (j/concentrics),
+                                    angle: origin + (i * step)
+                                });
+            
+                                path.push('{1} {2} {3}'.format(
+                                    i === 0 ? 'M' : 'L',
+                                    coords.x,
+                                    coords.y
+                                ));
         
-                        // Now add the path to the scene
-                        RG.SVG.create({
-                            svg: this.svg,
-                            type: 'path',
-                            parent: grid,
-                            attr: {
-                                d: path.join(' ') + ' z',
-                                fill: 'transparent',
-                                stroke: prop.backgroundGridColor,
-                                'stroke-width': prop.backgroundGridLinewidth
                             }
-                        });
+            
+                            // Now add the path to the scene
+                            RG.SVG.create({
+                                svg: this.svg,
+                                type: 'path',
+                                parent: grid,
+                                attr: {
+                                    d: path.join(' ') + ' z',
+                                    fill: 'transparent',
+                                    stroke: prop.backgroundGridColor,
+                                    'stroke-width': prop.backgroundGridLinewidth
+                                }
+                            });
+                        }
+
+
+
+
+
+                    // Draw the background "grid" as concentric circles
+                    } else {
+
+
+
+
+
+
+                        for (var j=1; j<=concentrics; j++) {
+
+                            // Add circle to the scene
+                            RG.SVG.create({
+                                svg: this.svg,
+                                type: 'circle',
+                                parent: grid,
+                                attr: {
+                                    cx: this.centerx,
+                                    cy: this.centery,
+                                    r: this.radius * (j/concentrics),
+                                    fill: 'transparent',
+                                    stroke: prop.backgroundGridColor,
+                                    'stroke-width': prop.backgroundGridLinewidth
+                                }
+                            });
+                        }
                     }
                 }
             }
@@ -652,12 +730,14 @@
                 var path = RG.SVG.create({
                     svg: this.svg,
                     type: 'path',
+                    parent: this.svg.all,
                     attr: {
                         d: path.join(" "),
                         stroke: prop.colors[dataset],
                         fill: prop.filled ? prop.colors[dataset] : 'transparent',
                         'fill-opacity': prop.filledOpacity,
                         'stroke-width': prop.linewidth,
+                        'clip-path': this.isTrace ? 'url(#trace-effect-clip)' : '',
                         filter: prop.shadow ? 'url(#dropShadow)' : '',
                     }
                 });
@@ -710,6 +790,7 @@
                     RG.SVG.create({
                         svg: this.svg,
                         type: 'path',
+                        parent: this.svg.all,
                         attr: {
                             d: path.join(" "),
                             stroke: prop.colors[dataset],
@@ -735,8 +816,10 @@
         {
             var group = RG.SVG.create({
                 svg:  this.svg,
+                parent: this.svg.all,
                 type: 'g',
                 attr: {
+                    className: 'rgraph_radar_tickmarks'
                 }
             });
 
@@ -746,14 +829,15 @@
                         var c = RG.SVG.create({
                             svg:  this.svg,
                             type: 'circle',
-                            fparent: group,
+                            parent: group,
                             attr: {
                                 cx: this.coords2[i][j][0],
                                 cy: this.coords2[i][j][1],
                                 r: prop.tickmarksSize,
                                 fill: prop.tickmarks === 'filledcircle' ? prop.colors[i] : prop.tickmarksFill,
                                 stroke: prop.colors[i],
-                                'stroke-width': prop.tickmarksLinewidth
+                                'stroke-width': prop.tickmarksLinewidth,
+                                'clip-path': this.isTrace ? 'url(#trace-effect-clip)' : ''
                             }
                         });
                         
@@ -769,7 +853,7 @@
                         var s = RG.SVG.create({
                             svg:  this.svg,
                             type: 'rect',
-                            fparent: group,
+                            parent: group,
                             attr: {
                                 x: this.coords2[i][j][0] - halfTickmarkSize,
                                 y: this.coords2[i][j][1] - halfTickmarkSize,
@@ -846,6 +930,7 @@
                 RG.SVG.text({
                     object: this,
                     svg:    this.svg,
+                    parent: this.svg.all,
                     text:   labels[i],
                     size:   typeof prop.labelsSize === 'number' ? prop.labelsSize : prop.textSize,
                     x:       x,
@@ -877,10 +962,11 @@
                     var x = this.centerx;
                     var y = this.centery - (this.radius / this.scale.labels.length * (i+1) );
     
-    
+
                     RG.SVG.text({
                         object: this,
                         svg:    this.svg,
+                        parent: this.svg.all,
                         text:   this.scale.labels[i],
                         size:   prop.scaleSize || prop.textSize - 2,
                         x:       x,
@@ -911,6 +997,7 @@
                 RG.SVG.text({
                     object: this,
                     svg:    this.svg,
+                    parent: this.svg.all,
                     text:   str,
                     size:   prop.scaleSize || prop.textSize - 2,
                     x:      this.centerx,
@@ -937,27 +1024,17 @@
         /**
         * This function can be used to highlight a segment on the chart
         * 
-        * @param object segment The segment to highlight
+        * @param object circle The circle to highlight
         */
         this.highlight = function (circle)
-        {
-            if (typeof prop.tickmarks === 'string' && prop.tickmarks) {
+        {                
+            circle.setAttribute('fill', prop.highlightFill);
+            circle.setAttribute('stroke', prop.highlightStroke);
+            circle.setAttribute('stroke-width', prop.highlightLinewidth);
                 
-                circle.setAttribute('fill', prop.highlightFill);
-                circle.setAttribute('stroke', prop.highlightStroke);
-                circle.setAttribute('stroke-width', prop.highlightLinewidth);
-                
-                window.addEventListener ('mousedown', function (e)
-                {
-                    circle.setAttribute('fill', 'transparent');
-                    circle.setAttribute('stroke', 'transparent');
-                    circle.setAttribute('stroke-width', 0);
-                    
-                    RG.SVG.REG.set('highlight', this);
-                }, false);
-                
-                this.highlight_hotspot = circle;
-            }
+            this.highlight_node = circle;
+
+            RG.SVG.REG.set('highlight', circle);
         };
 
 
@@ -968,16 +1045,15 @@
 
 
         // Add the hide function
-        this.hideHighlight = function ()
-        {
-            if (this.highlight_hotspot) {
-                this.highlight_hotspot.setAttribute('fill', 'transparent');
-                this.highlight_hotspot.setAttribute('stroke', 'transparent');
-                this.highlight_hotspot.setAttribute('stroke-width', 0);
+        //this.hideHighlight = function ()
+        //{
+        //    var highlight = RG.SVG.REG.get('highlight');
 
-                this.highlight_hotspot = null
-            }
-        };
+        //    if (highlight) {
+        //        highlight.setAttribute('fill', 'transparent');
+        //        highlight.setAttribute('stroke', 'transparent');
+        //    }
+        //};
 
 
 
@@ -1082,6 +1158,7 @@
                 var group = RG.SVG.create({
                     svg: this.svg,
                     type: 'g',
+                    parent: this.svg.all,
                     attr: {
                         className: 'rgraph-radar-tooltip-hotspots'
                     }
@@ -1100,52 +1177,50 @@
                                 r: prop.tickmarksSize,
                                 fill: 'transparent',
                                 stroke: 'transparent',
-                                'stroke-width': 0
+                                'stroke-width': 0,
+                                'data-sequential-index': seq
                             },
                             style: {
-                                cursor: 'pointer'
+                                cursor: prop['tooltips'][seq] ? 'pointer' : 'default'
                             }
                         });
 
                         (function (dataset, index, seq, obj)
                         {
-                            circle.addEventListener(prop.tooltipsEvent, function (e)
-                            {
-                                var tooltip = RG.SVG.REG.get('tooltip');
-                                
-                                if (tooltip && tooltip.__sequentialIndex__ === seq) {
-                                    return;
-                                }
-                                
-                                RG.SVG.hideTooltip();
-                                obj.hideHighlight();
-
-                                // Show the tooltip
-                                RG.SVG.tooltip({
-                                    object: obj,
-                                    dataset: dataset,
-                                    index: index,
-                                    sequentialIndex: seq,
-                                    text: prop.tooltips[seq],
-                                    event: e
-                                });
-                                
-                                // Highlight the rect that has been clicked on
-                                obj.highlight(this);
-
-                                if (prop.tooltipsEvent === 'mousemove') {
-                                    highlight.style.cursor = 'pointer';
-                                }
-                                
-                            }, false);
-        
-                            // Install the event listener that changes the
-                            // cursor if necessary
-                            if (prop.tooltipsEvent === 'click') {
-                                circle.addEventListener('mousemove', function (e)
+                            if (prop.tooltips[seq]) {
+                                circle.addEventListener(prop.tooltipsEvent, function (e)
                                 {
-                                    e.target.style.cursor = 'pointer';
+                                    var tooltip = RG.SVG.REG.get('tooltip');
+    
+                                    //obj.hideHighlight();
+                                    
+                                    if (tooltip && tooltip.__sequentialIndex__ === seq) {
+                                        return;
+                                    }
+    
+                                    // Show the tooltip
+                                    RG.SVG.tooltip({
+                                        object: obj,
+                                        dataset: dataset,
+                                        index: index,
+                                        sequentialIndex: seq,
+                                        text: prop.tooltips[seq],
+                                        event: e
+                                    });
+    
+                                    // Highlight the shape that has been clicked on
+                                    obj.highlight(this);
+                                    
                                 }, false);
+            
+                                // Install the event listener that changes the
+                                // cursor if necessary
+                                if (prop.tooltipsEvent === 'click') {
+                                    circle.addEventListener('mousemove', function (e)
+                                    {
+                                        e.target.style.cursor = 'pointer';
+                                    }, false);
+                                }
                             }
                             
                         }(dataset, i, seq++, this));
@@ -1297,6 +1372,108 @@
             
             return this;
         };
+
+
+
+
+
+
+
+
+        //
+        // Removes the tooltip highlight from the chart
+        //
+        this.removeHighlight =
+        this.hideHighlight   = function ()
+        {
+            var highlight = RG.SVG.REG.get('highlight');
+
+            if (highlight && this.highlight_node) {
+                this.highlight_node.setAttribute('fill','transparent');
+                this.highlight_node.setAttribute('stroke','transparent');
+                
+                RG.SVG.REG.set('highlight', null);
+            }
+        };
+
+
+
+
+
+
+
+
+    //
+    // The trace effect
+    //
+    // @param ... object Options to the effect
+    // @param ... function A callback function to run when the effect finishes
+    //
+    this.trace = function ()
+    {
+        var opt      = arguments[0] || {},
+            frame    = 1,
+            frames   = opt.frames || 120,
+            obj      = this
+            step     = 360 / frames;
+
+        this.isTrace = true;
+
+        this.draw();
+
+        // Create the clip area
+        var clipPath = RG.SVG.create({
+            svg: this.svg,
+            parent: this.svg.defs,
+            type: 'clipPath',
+            attr: {
+                id: 'trace-effect-clip'
+            }
+        });
+        
+        clipPathArcPath = RG.SVG.TRIG.getArcPath2({
+            cx:    this.angles[0].cx,
+            cy:    this.angles[0].cy,
+            r:     this.angles[0].r * 2,
+            start: 0,
+            end:   0
+        });
+
+        var clipPathArc = RG.SVG.create({
+            svg: this.svg,
+            parent: clipPath,
+            type: 'path',
+            attr: {
+                d: clipPathArcPath
+            }
+        });
+        
+        
+        var iterator = function ()
+        {
+            var width = (frame++) / frames * obj.width;
+            var deg   = (360 / frames) * frame++,
+                rad   = (RG.SVG.TRIG.TWOPI / 360) * deg
+
+            clipPathArc.setAttribute('d', RG.SVG.TRIG.getArcPath2({
+                cx:    obj.angles[0].cx,
+                cy:    obj.angles[0].cy,
+                r:     obj.angles[0].r * 2,
+                start: 0,
+                end:   rad
+            }));
+            
+            if (frame <= frames) {
+                RG.SVG.FX.update(iterator);
+            } else if (opt.callback) {
+                (opt.callback)(obj);
+            }
+        };
+        
+        iterator();
+        
+        return this;
+    };
 
 
 

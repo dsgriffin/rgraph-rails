@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -26,6 +26,55 @@
 
     RG.SVG.HBar = function (conf)
     {
+        //
+        // A setter that the constructor uses (at the end)
+        // to set all of the properties
+        //
+        // @param string name  The name of the property to set
+        // @param string value The value to set the property to
+        //
+        this.set = function (name, value)
+        {
+            if (arguments.length === 1 && typeof name === 'object') {
+                for (i in arguments[0]) {
+                    if (typeof i === 'string') {
+                    
+                        var ret = RG.SVG.commonSetter({
+                            object: this,
+                            name:   i,
+                            value:  arguments[0][i]
+                        });
+                        
+                        name  = ret.name;
+                        value = ret.value;
+
+                        this.set(name, value);
+                    }
+                }
+            } else {
+
+                var ret = RG.SVG.commonSetter({
+                    object: this,
+                    name:   name,
+                    value:  value
+                });
+
+                name  = ret.name;
+                value = ret.value;
+
+                this.properties[name] = value;
+            }
+
+            return this;
+        };
+
+
+
+
+
+
+
+
         this.id               = conf.id;
         this.uid              = RG.SVG.createUID();
         this.container        = document.getElementById(this.id);
@@ -54,6 +103,15 @@
             gutterBottom: 35,
             gutterLeftAutosize: true,
 
+            backgroundColor:            null,
+            backgroundImage:            null,
+            backgroundImageAspect:      'none',
+            backgroundImageStretch:     true,
+            backgroundImageOpacity:     null,
+            backgroundImageX:           null,
+            backgroundImageY:           null,
+            backgroundImageW:           null,
+            backgroundImageH:           null,
             backgroundGrid:             true,
             backgroundGridColor:        '#ddd',
             backgroundGridLinewidth:    1,
@@ -73,10 +131,12 @@
 
             vmargin:              3,
             vmarginGrouped:       2,
+            vmarginTop:           0,
+            vmarginBottom:        0,
 
             xaxis:                true,
             xaxisTickmarks:       true,
-            xaxisTickmarksLength: 4,
+            xaxisTickmarksLength: 5,
             xaxisColor:           'black',
             xaxisLabels:          [],
             xaxisLabelsOffsetx:   0,
@@ -140,6 +200,7 @@
             labelsAboveOffsety:           0,
             labelsAboveHalign:            'left',
             labelsAboveValign:            'center',
+            labelsAboveSpecific:          null,
 
             linewidth:            1,
             grouping:             'grouped',
@@ -159,7 +220,7 @@
             titleX:               null,
             titleY:               null,
             titleHalign:          'center',
-            titleValign:          'bottom',
+            titleValign:          null,
             titleColor:           'black',
             titleFont:            null,
             titleBold:            false,
@@ -169,7 +230,7 @@
             titleSubtitleX:       null,
             titleSubtitleY:       null,
             titleSubtitleHalign:  'center',
-            titleSubtitleValign:  'top',
+            titleSubtitleValign:  null,
             titleSubtitleColor:   '#aaa',
             titleSubtitleSize:    10,
             titleSubtitleFont:    null,
@@ -181,14 +242,26 @@
             shadowOffsety:        2,
             shadowBlur:           2,
             shadowOpacity:        0.25,
+
+
+
+            key:            null,
+            keyColors:      null,
+            keyOffsetx:     0,
+            keyOffsety:     0,
+            keyTextOffsetx: 0,
+            keyTextOffsety: -1,
+            keyTextSize:    null,
+            keyTextBold:    null,
+            keyTextItalic:  null,
             
             attribution:        true,
             attributionX:       null,
             attributionY:       null,
-            attributionHref:    'http://www.rgraph.net/svg/index.html',
+            attributionHref:    null,// Default is set in RGraph.svg.common.core.js
             attributionHalign:  'right',
             attributionValign:  'bottom',
-            attributionSize:    8,
+            attributionSize:    7,
             attributionColor:   'gray',
             attributionFont:    'sans-serif',
             attributionItalic:  false,
@@ -210,32 +283,6 @@
 
 
         var prop = this.properties;
-
-
-
-
-
-        //
-        // A setter that the constructor uses (at the end)
-        // to set all of the properties
-        //
-        // @param string name  The name of the property to set
-        // @param string value The value to set the property to
-        //
-        this.set = function (name, value)
-        {
-            if (arguments.length === 1 && typeof name === 'object') {
-                for (i in arguments[0]) {
-                    if (typeof i === 'string') {
-                        this.set(i, arguments[0][i]);
-                    }
-                }
-            } else {
-                this.properties[name] = value;
-            }
-
-            return this;
-        };
 
 
 
@@ -286,15 +333,9 @@
 
 
 
-            //
-            // Parse the colors. This allows for simple gradient syntax
-            //
-            if (!this.colorsParsed) {
-                this.parseColors();
-                
-                // Don't want to do this again
-                this.colorsParsed = true;
-            }
+            // Parse the colors for gradients
+            RG.SVG.resetColorsToOriginalValues({object:this});
+            this.parseColors();
 
 
 
@@ -392,6 +433,21 @@
             // Draw the labelsAbove
             this.drawLabelsAbove();
 
+
+
+
+
+
+            // Draw the key
+            if (typeof prop.key !== null && RG.SVG.drawKey) {
+                RG.SVG.drawKey(this);
+            } else if (!RGraph.SVG.isNull(prop.key)) {
+                alert('The drawKey() function does not exist - have you forgotten to include the key library?');
+            }
+
+
+
+
             
             
             // Add the attribution link. If you're adding this elsewhere on your page/site
@@ -452,14 +508,24 @@
                 //
                 if (typeof this.data[i] === 'number') {
 
-                    var outerSegment = this.graphHeight / this.data.length,
-                        width        = ma.abs((this.data[i] / (this.max - this.min)) * this.graphWidth),
-                        height       = (this.graphHeight / this.data.length) - prop.vmargin - prop.vmargin,
-                        x            = this.getXCoord(0) - (this.data[i] <  0 ? width : 0),
-                        y            = prop.gutterTop + prop.vmargin + (outerSegment * i);
+                    var outerSegment = (this.graphHeight - prop.vmarginTop - prop.vmarginBottom) / this.data.length,
+                        width        = this.getWidth(this.data[i]),
+                        height       = ( (this.graphHeight - prop.vmarginTop - prop.vmarginBottom) / this.data.length) - prop.vmargin - prop.vmargin,
+                        x            = this.getXCoord(
+                                            (this.scale.min < 0 && this.scale.max < 0) || (this.scale.min > 0 && this.scale.max > 0) ? this.scale.min : 0
+                                        ) - (this.data[i] <  0 ? width : 0),
+                        y            = prop.gutterTop + prop.vmarginTop + prop.vmargin + (outerSegment * i);
+
+                    // If theres a min set but both the min and max are below
+                    // zero the the bars should be aligned to the right hand
+                    // side
+                    if (this.scale.min < 0 && this.scale.max < 0) {
+                        x = this.width - prop.gutterRight - width;
+                    }
 
                     var rect = RG.SVG.create({
                         svg: this.svg,
+                        parent: this.svg.all,
                         type: 'rect',
                         attr: {
                             stroke: prop.strokestyle,
@@ -471,6 +537,8 @@
                             'stroke-width': prop.linewidth,
                             'data-tooltip': (!RG.SVG.isNull(prop.tooltips) && prop.tooltips.length) ? prop.tooltips[i] : '',
                             'data-index': i,
+                            'data-original-width': width,
+                            'data-original-height': height,
                             'data-sequential-index': sequentialIndex,
                             'data-value': this.data[i],
                             filter: prop.shadow ? 'url(#dropShadow)' : ''
@@ -499,10 +567,9 @@
                         //
                         (function (idx, seq)
                         {
-                            rect['on' + prop.tooltipsEvent] = function (e)
+                            rect.addEventListener(prop.tooltipsEvent.replace(/^on/, ''), function (e)
                             {
-                                // Hide any tooltip that is currently visible
-                                RG.SVG.hideTooltip();
+                                obj.removeHighlight();
 
                                 // Show the tooltip
                                 RG.SVG.tooltip({
@@ -516,13 +583,12 @@
                                 
                                 // Highlight the rect that has been clicked on
                                 obj.highlight(e.target);
-
-                            };
+                            }, false);
                             
-                            rect.onmousemove = function (e)
+                            rect.addEventListener('mousemove', function (e)
                             {
-                                e.target.style.cursor = 'pointer'
-                            };
+                                e.target.style.cursor = 'pointer';
+                            }, false);
                         })(i, sequentialIndex);
                     }
 
@@ -534,7 +600,7 @@
                 //
                 } else if (RG.SVG.isArray(this.data[i]) && prop.grouping === 'grouped') {
 
-                    var outerSegment = (this.graphHeight / this.data.length),
+                    var outerSegment = ( (this.graphHeight - prop.vmarginTop - prop.vmarginBottom) / this.data.length),
                         innerSegment = outerSegment - (2 * prop.vmargin);
 
                     // Loop through the group
@@ -542,13 +608,46 @@
 
                         var width  = ma.abs((this.data[i][j] / (this.max - this.min)) * this.graphWidth),
                             height = ( (innerSegment - ((this.data[i].length - 1) * prop.vmarginGrouped)) / this.data[i].length),
-                            y      = prop.gutterTop + prop.vmargin + (outerSegment * i) + (j * height) + (j * prop.vmarginGrouped),
+                            y      = prop.gutterTop + prop.vmargin + prop.vmarginTop + (outerSegment * i) + (j * height) + (j * prop.vmarginGrouped),
                             x      = this.getXCoord(0) - (this.data[i][j] <  0 ? width : 0);
+
+
+
+
+
+
+
+
+
+                        // Work out some coordinates for the width and X coords ///////////////////////
+                        if (this.scale.max < 0 && this.scale.min < this.scale.max) {
+                            var x1 = this.getXCoord(this.data[i][j]);
+                            var x2 = this.getXCoord(this.scale.max);
+                            x      = x1;
+                            width  = x2 - x1;
+                        
+                        } else if (this.scale.min > 0 && this.scale.max > this.scale.min) {
+                            var x1 = this.getXCoord(this.data[i][j]);
+                            var x2 = this.getXCoord(this.scale.min);
+                            x      = this.getXCoord(this.scale.min);
+                            width  = x1 - x2;
+
+                        }
+                        //////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
 
 
                         var rect = RG.SVG.create({
                             svg: this.svg,
                             type: 'rect',
+                            parent: this.svg.all,
                             attr: {
                                 stroke: prop['strokestyle'],
                                 fill: (prop.colorsSequential && prop.colors[sequentialIndex]) ? prop.colors[sequentialIndex] : (prop.colors[j] ? prop.colors[j] : prop.colors[prop.colors.length - 1]),
@@ -558,6 +657,7 @@
                                 height: height,
                                 'stroke-width': prop.linewidth,
                                 'data-index': i,
+                                'data-original-width': width,
                                 'data-sequential-index': sequentialIndex,
                                 'data-tooltip': (!RG.SVG.isNull(prop.tooltips) && prop.tooltips.length) ? prop.tooltips[sequentialIndex] : '',
                                 'data-value': this.data[i][j],
@@ -587,10 +687,9 @@
                             {
                                 var indexes = RG.SVG.sequentialIndexToGrouped(seq, obj.data);
 
-                                rect['on' + prop.tooltipsEvent] = function (e)
+                                rect.addEventListener(prop.tooltipsEvent.replace(/^on/, ''), function (e)
                                 {
-                                    // Hide any tooltip that is currently visible
-                                    RG.SVG.hideTooltip();
+                                    obj.removeHighlight();
 
                                     // Show the tooltip
                                     RG.SVG.tooltip({
@@ -605,12 +704,12 @@
                                     // Highlight the rect that has been clicked on
                                     obj.highlight(e.target);
     
-                                };
+                                }, false);
                                 
-                                rect.onmousemove = function (e)
+                                rect.addEventListener('mousemove', function (e)
                                 {
                                     e.target.style.cursor = 'pointer'
-                                };
+                                }, false);
                             })(i, sequentialIndex);
                         }
                     }
@@ -625,7 +724,7 @@
                 } else if (RG.SVG.isArray(this.data[i]) && prop.grouping === 'stacked') {
 
                     // This is each bars "segment" of the chart
-                    var section = (this.graphHeight / this.data.length);
+                    var section = ( (this.graphHeight - prop.vmarginTop - prop.vmarginBottom) / this.data.length);
 
                     
                     // Intialise the X and Y coordinates
@@ -636,10 +735,10 @@
                     // Loop through the stack
                     for (var j=0; j<this.data[i].length; ++j,++sequentialIndex) {
 
-                        var outerHeight = this.graphHeight / this.data.length,
+                        var outerHeight = (this.graphHeight - prop.vmarginTop - prop.vmarginBottom) / this.data.length,
                             width       = ma.abs((this.data[i][j] / (this.max - this.min)) * this.graphWidth),
                             height      = outerHeight - (2 * prop.vmargin),
-                            y           = prop.gutterTop + prop.vmargin + (outerHeight * i);
+                            y           = prop.gutterTop + prop.vmargin + prop.vmarginTop + (outerHeight * i);
 
                         // If this is the first iteration of the loop and a shadow
                         // is requested draw a rect here to create it.
@@ -649,6 +748,7 @@
 
                             var rect = RG.SVG.create({
                                 svg: this.svg,
+                                parent: this.svg.all,
                                 type: 'rect',
                                 attr: {
                                     x: x,
@@ -671,6 +771,7 @@
                         var rect = RG.SVG.create({
                             svg: this.svg,
                             type: 'rect',
+                            parent: this.svg.all,
                             attr: {
                                 stroke: prop['strokestyle'],
                                 fill: prop.colorsSequential ? (prop.colors[sequentialIndex] ? prop.colors[sequentialIndex] : prop.colors[prop.colors.length - 1]) : (prop.colors[j] ? prop.colors[j] : prop.colors[prop.colors.length - 1]),
@@ -679,6 +780,10 @@
                                 width: width,
                                 height: height,
                                 'stroke-width': prop.linewidth,
+                                'data-original-width': width,
+                                'data-original-height': height,
+                                'data-original-x': x,
+                                'data-original-y': y,
                                 'data-index': i,
                                 'data-sequential-index': sequentialIndex,
                                 'data-tooltip': (!RG.SVG.isNull(prop.tooltips) && prop.tooltips.length) ? prop.tooltips[sequentialIndex] : '',
@@ -697,7 +802,7 @@
 
 
 
-                        // Add the tooltip data- attribute
+                        // Add the tooltips 
                         if (!RG.SVG.isNull(prop.tooltips) && prop.tooltips[sequentialIndex]) {
                         
                             var obj = this;
@@ -708,10 +813,9 @@
                             //
                             (function (idx, seq)
                             {
-                                rect['on' + prop.tooltipsEvent] = function (e)
+                                rect.addEventListener(prop.tooltipsEvent.replace(/^on/, ''), function (e)
                                 {
-                                    // Hide any tooltip that is currently visible
-                                    RG.SVG.hideTooltip();
+                                    obj.removeHighlight();
 
                                     var indexes = RG.SVG.sequentialIndexToGrouped(seq, obj.data);
 
@@ -727,12 +831,12 @@
                                     
                                     // Highlight the rect that has been clicked on
                                     obj.highlight(e.target);
-                                };
+                                }, false);
                                 
-                                rect.onmousemove = function (e)
+                                rect.addEventListener('mousemove', function (e)
                                 {
                                     e.target.style.cursor = 'pointer'
-                                };
+                                }, false);
                             })(i, sequentialIndex);
                         }
                         
@@ -787,6 +891,40 @@
 
 
 
+
+        /**
+        * This function can be used to retrieve the relevant X coordinate for a
+        * particular value.
+        * 
+        * @param int value The value to get the X coordinate for
+        */
+        this.getWidth = function (value)
+        {
+            if (this.scale.max <= 0 && this.scale.min < this.scale.max) {
+                var x1 = this.getXCoord(this.scale.max);
+                var x2 = this.getXCoord(value);
+            
+            } else if (this.scale.min > 0 && this.scale.max > this.scale.min) {
+                var x1 = this.getXCoord(this.scale.min);
+                var x2 = this.getXCoord(value);
+            
+            } else {
+                var x1 = this.getXCoord(0);
+                var x2 = this.getXCoord(value);
+            }
+
+            return ma.abs(x1 - x2);
+        };
+        
+        //ma.abs(((this.data[i] - this.scale.min) / (this.max - this.scale.min)) * this.graphWidth)
+
+
+
+
+
+
+
+
         /**
         * This function can be used to highlight a bar on the chart
         * 
@@ -802,6 +940,7 @@
             var highlight = RG.SVG.create({
                 svg: this.svg,
                 type: 'rect',
+                parent: this.svg.all,
                 attr: {
                     stroke: prop.highlightStroke,
                     fill: prop.highlightFill,
@@ -814,15 +953,15 @@
             });
 
 
-            if (prop.tooltipsEvent === 'mousemove') {
-                highlight.addEventListener('mouseout', function (e)
-                {
-                    highlight.parentNode.removeChild(highlight);
-                    RG.SVG.hideTooltip();
+            //if (prop.tooltipsEvent === 'mousemove') {
+            //    highlight.addEventListener('mouseout', function (e)
+            //    {
+            //        highlight.parentNode.removeChild(highlight);
+            //        RG.SVG.hideTooltip();
 
-                    RG.SVG.REG.set('highlight', null);
-                }, false);
-            }
+            //        RG.SVG.REG.set('highlight', null);
+            //    }, false);
+            //}
 
 
             // Store the highlight rect in the rebistry so
@@ -848,7 +987,8 @@
                 this.originalColors = {
                     colors:              RG.SVG.arrayClone(prop.colors),
                     backgroundGridColor: RG.SVG.arrayClone(prop.backgroundGridColor),
-                    highlightFill:       RG.SVG.arrayClone(prop.highlightFill)
+                    highlightFill:       RG.SVG.arrayClone(prop.highlightFill),
+                    backgroundColor:     RG.SVG.arrayClone(prop.backgroundColor)
                 }
             }
 
@@ -870,6 +1010,7 @@
 
             prop.backgroundGridColor = RG.SVG.parseColorLinear({object: this, color: prop.backgroundGridColor, direction: 'horizontal',start: prop.gutterLeft,end: this.width - prop.gutterRight});
             prop.highlightFill       = RG.SVG.parseColorLinear({object: this, color: prop.highlightFill, direction: 'horizontal',start: prop.gutterLeft,end: this.width - prop.gutterRight});
+            prop.backgroundColor     = RG.SVG.parseColorLinear({object: this, color: prop.backgroundColor});
         };
 
 
@@ -892,8 +1033,10 @@
                 for (var i=0; i<this.coords.length; ++i) {
 
                     var value = data[i].toFixed(typeof prop.labelsAboveDecimals === 'number' ? prop.labelsAboveDecimals : prop.xaxisDecimals);
-
                     var indexes = RG.SVG.sequentialIndexToGrouped(i, this.data);
+
+
+
                     if (RG.SVG.isArray(this.data[indexes[0]]) && prop.grouping === 'stacked') {
                         if ((indexes[1] +1) === this.data[indexes[0]].length) {
                             value = RG.SVG.arraySum(this.data[indexes[0]]);
@@ -902,9 +1045,9 @@
                             continue;
                         }
                     }
-                    
 
-                    var str = RG.SVG.numberFormat({
+
+                    var str = prop.labelsAboveSpecific ? prop.labelsAboveSpecific[i].toString() : RG.SVG.numberFormat({
                         object:    this,
                         num:       value,
                         prepend:   typeof prop.labelsAboveUnitsPre  === 'string'   ? prop.labelsAboveUnitsPre  : null,
@@ -913,7 +1056,7 @@
                         thousand:  typeof prop.labelsAboveThousand  === 'string'   ? prop.labelsAboveThousand  : null,
                         formatter: typeof prop.labelsAboveFormatter === 'function' ? prop.labelsAboveFormatter : null
                     });
-                    
+
                     var bold   = typeof prop.labelsAboveBold   === 'boolean' ? prop.labelsAboveBold   : prop.textBold,
                         italic = typeof prop.labelsAboveItalic === 'boolean' ? prop.labelsAboveItalic : prop.textItalic,
                         size   = prop.labelsAboveSize || prop.textSize,
@@ -927,21 +1070,25 @@
                         font: font,
                         size: size
                     });
-                    
-                    var x      = parseFloat(this.coords[i].object.getAttribute('x')) + parseFloat(this.coords[i].object.getAttribute('width')) + 7 + prop.labelsAboveOffsetx,
+
+                    var x      = (value >= 0)
+                                   ? (parseFloat(this.coords[i].object.getAttribute('x')) + parseFloat(this.coords[i].object.getAttribute('width')) + 7 + prop.labelsAboveOffsetx)
+                                   : parseFloat(this.coords[i].object.getAttribute('x') - 7 - prop.labelsAboveOffsetx),
                         y      = parseFloat(this.coords[i].object.getAttribute('y')) + parseFloat(this.coords[i].object.getAttribute('height') / 2) + prop.labelsAboveOffsety,
                         width  = dimensions[0],
-                        height = dimensions[1];
-                    
-                    if (x + width > this.width) {
+                        height = dimensions[1],
+                        halign = (value >= 0) ? 'left': 'right';
+
+                    if (x + width > this.width && value > 0) {
                         halign = 'right';
                         x      = this.width - 5;
                         prop.labelsAboveBackground = prop.labelsAboveBackground || 'rgba(255,255,255,0.95)';
                     }
-                    
+
 
                     var text = RG.SVG.text({
                         object:     this,
+                        parent: this.svg.all,
                         text:       str,
                         x:          x,
                         y:          y,
@@ -1002,6 +1149,26 @@
             func(this);
             
             return this;
+        };
+
+
+
+
+
+
+
+
+        //
+        // Remove highlight from the chart (tooltips)
+        //
+        this.removeHighlight = function ()
+        {
+            var highlight = RG.SVG.REG.get('highlight');
+            if (highlight && highlight.parentNode) {
+                highlight.parentNode.removeChild(highlight);
+            }
+            
+            RG.SVG.REG.set('highlight', null);
         };
 
 
@@ -1115,6 +1282,99 @@
 
             iterate();
             
+            return this;
+        };
+
+
+
+
+
+
+
+
+        /**
+        * HBar chart Wave effect.
+        * 
+        * @param object OPTIONAL An object map of options. You specify 'frames'
+        *                        here to give the number of frames in the effect
+        *                        and also callback to specify a callback function
+        *                        thats called at the end of the effect
+        */
+        this.wave = function ()
+        {
+            // First draw the chart
+            this.draw();
+
+
+            var obj = this,
+                opt = arguments[0] || {};
+            
+            opt.frames      = opt.frames || 60;
+            opt.startFrames = [];
+            opt.counters    = [];
+
+            var framesperbar    = opt.frames / 3,
+                frame           = -1,
+                callback        = opt.callback || function () {},
+                width;
+
+            for (var i=0,len=this.coords.length; i<len; i+=1) {
+                opt.startFrames[i] = ((opt.frames / 2) / (obj.coords.length - 1)) * i;
+                opt.counters[i]    = 0;
+                
+                // Now zero the width of the bar
+                this.coords[i].object.setAttribute('width', 0);
+            }
+
+
+            function iterator ()
+            {
+                ++frame;
+
+                for (var i=0,len=obj.coords.length; i<len; i+=1) {
+                    if (frame > opt.startFrames[i]) {                            
+                        
+                        var originalWidth = obj.coords[i].object.getAttribute('data-original-width'),
+                            value         = parseFloat(obj.coords[i].object.getAttribute('data-value'));
+
+                        obj.coords[i].object.setAttribute(
+                            'width',
+                            width = ma.min(
+                                ((frame - opt.startFrames[i]) / framesperbar) * originalWidth,
+                                originalWidth
+                            )
+                        );
+                        
+                        obj.coords[i].object.setAttribute(
+                            'x',
+                            value >=0 ? obj.getXCoord(0) : obj.getXCoord(0) - width
+                        );
+                        
+                        
+                        if (prop.grouping === 'stacked') {
+                            var seq = obj.coords[i].object.getAttribute('data-sequential-index');
+                            var indexes = RG.SVG.sequentialIndexToGrouped(seq, obj.data);
+                            
+                            if (indexes[1] > 0) {
+                                obj.coords[i].object.setAttribute(
+                                    'x',
+                                    parseInt(obj.coords[i - 1].object.getAttribute('x')) + parseInt(obj.coords[i - 1].object.getAttribute('width'))
+                                );
+                            }
+                        }
+                    }
+                }
+
+
+                if (frame >= opt.frames) {
+                    callback(obj);
+                } else {
+                    RG.SVG.FX.update(iterator);
+                }
+            }
+            
+            iterator();
+
             return this;
         };
 

@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -2360,7 +2360,7 @@
             obj.original_data = RG.arrayClone(obj.data);
 
 
-            // Stop the scale from changing by setting chart.ymax (if it's not already set)
+            // Stop the scale from changing by setting chart.xmax (if it's not already set)
             if (prop['chart.xmax'] == 0) {
 
                 var xmax = 0;
@@ -2418,6 +2418,232 @@
             
             return this;
         };
+
+
+
+
+
+
+
+
+        /**
+        * Grow
+        *
+        * The HBar chart Grow effect gradually increases the values of the bars
+        *
+        * @param object       An object of options - eg: {frames: 30}
+        * @param function     A function to call when the effect is complete
+        */
+        this.grow = function ()
+        {
+            // Callback
+            var opt         = arguments[0] || {},
+                frames      = opt.frames || 30,
+                frame       = 0,
+                callback    = arguments[1] || function () {},
+                obj         = this,
+                labelsAbove = this.get('labelsAbove')
+
+
+
+
+            this.original_data = RG.arrayClone(this.data);
+
+
+
+            // Stop the scale from changing by setting chart.xmax (if it's not already set)
+            if (prop['chart.xmax'] == 0) {
+
+                var xmax = 0;
+    
+                for (var i=0; i<obj.data.length; ++i) {
+                    if (RG.isArray(obj.data[i]) && prop['chart.grouping'] == 'stacked') {
+                        xmax = ma.max(xmax, RG.arraySum(obj.data[i]));
+                    } else if (RG.isArray(obj.data[i]) && prop['chart.grouping'] == 'grouped') {
+                        xmax = ma.max(xmax, RG.arrayMax(obj.data[i]));
+                    } else {
+                        xmax = ma.max(xmax, ma.abs(RG.arrayMax(obj.data[i])));
+                    }
+                }
+
+                var scale2 = RG.getScale2(obj, {'max':xmax});
+                obj.Set('chart.xmax', scale2.max);
+            }
+
+
+            // Go through the data and change string arguments of the format +/-[0-9]
+            // to absolute numbers
+            if (RG.isArray(opt.data)) {
+
+                var xmax = 0;
+
+                for (var i=0; i<opt.data.length; ++i) {
+                    if (typeof opt.data[i] === 'object') {
+                        for (var j=0; j<opt.data[i].length; ++j) {
+                            if (typeof opt.data[i][j] === 'string'&& opt.data[i][j].match(/(\+|\-)([0-9]+)/)) {
+                                if (RegExp.$1 === '+') {
+                                    opt.data[i][j] = this.original_data[i][j] + parseInt(RegExp.$2);
+                                } else {
+                                    opt.data[i][j] = this.original_data[i][j] - parseInt(RegExp.$2);
+                                }
+                            }
+
+                            xmax = ma.max(xmax, opt.data[i][j]);
+                        }
+                    } else if (typeof opt.data[i] === 'string' && opt.data[i].match(/(\+|\-)([0-9]+)/)) {
+                        if (RegExp.$1 === '+') {
+                            opt.data[i] = this.original_data[i] + parseFloat(RegExp.$2);
+                        } else {
+                            opt.data[i] = this.original_data[i] - parseFloat(RegExp.$2);
+                        }
+
+                        xmax = ma.max(xmax, opt.data[i]);
+                    } else {
+                        xmax = ma.max(xmax, opt.data[i]);
+                    }
+                }
+
+
+                var scale = RG.getScale2(this, {'max':xmax});
+                if (typeof this.get('chart.xmax') === 'null') {
+                    this.set('chart.xmax', scale.max);
+                }
+            }
+
+
+
+
+
+
+            //
+            // turn off the labelsAbove option whilst animating
+            //
+            this.set('labelsAbove', false);
+
+
+
+
+
+
+            // Stop the scale from changing by setting chart.xmax (if it's not already set)
+            if (RG.isNull(prop['chart.xmax'])) {
+
+                var xmax = 0;
+
+                for (var i=0; i<obj.data.length; ++i) {
+                    if (RG.isArray(this.data[i]) && prop['chart.grouping'] === 'stacked') {
+                        xmax = ma.max(xmax, ma.abs(RG.arraySum(this.data[i])));
+
+                    } else if (RG.isArray(this.data[i]) && prop['chart.grouping'] === 'grouped') {
+
+                        for (var j=0,group=[]; j<this.data[i].length; j++) {
+                            group.push(ma.abs(this.data[i][j]));
+                        }
+
+                        xmax = ma.max(xmax, ma.abs(RG.arrayMax(group)));
+
+                    } else {
+                        xmax = ma.max(xmax, ma.abs(this.data[i]));
+                    }
+                }
+
+                var scale = RG.getScale2(this, {'max':xmax});
+                this.Set('chart.xmax', scale.max);
+            }
+
+            // You can give an xmax to the grow function
+            if (typeof opt.xmax === 'number') {
+                obj.set('xmax', opt.xmax);
+            }
+
+
+
+            var iterator = function ()
+            {
+                var easingMultiplier = RG.Effects.getEasingMultiplier(frames, frame);
+
+                // Alter the Bar chart data depending on the frame
+                for (var j=0,len=obj.original_data.length; j<len; ++j) {
+                    if (typeof obj.data[j] === 'object' && !RG.isNull(obj.data[j])) {
+                        for (var k=0,len2=obj.data[j].length; k<len2; ++k) {
+                            if (obj.firstDraw || !opt.data) {
+                                obj.data[j][k] = easingMultiplier * obj.original_data[j][k];
+                            } else if (opt.data && opt.data.length === obj.original_data.length) {
+                                var diff    = opt.data[j][k] - obj.original_data[j][k];
+                                obj.data[j][k] = (easingMultiplier * diff) + obj.original_data[j][k];
+                            }
+                        }
+                    } else {
+
+                        if (obj.firstDraw || !opt.data) {
+                            obj.data[j] = easingMultiplier * obj.original_data[j];
+                        } else if (opt.data && opt.data.length === obj.original_data.length) {
+                            var diff    = opt.data[j] - obj.original_data[j];
+                            obj.data[j] = (easingMultiplier * diff) + obj.original_data[j];
+                        }
+                    }
+                }
+
+
+
+
+                //RGraph.clear(obj.canvas);
+                RG.redrawCanvas(obj.canvas);
+
+
+
+
+                if (frame < frames) {
+                    frame += 1;
+
+                    RG.Effects.updateCanvas(iterator);
+
+                // Call the callback function
+                } else {
+
+
+
+
+
+                    // Do some housekeeping if new data was specified thats done in
+                    // the constructor - but needs to be redone because new data
+                    // has been specified
+                    if (RG.isArray(opt.data)) {
+
+                        var linear_data = RG.arrayLinearize(data);
+
+                        for (var i=0; i<linear_data.length; ++i) {
+                            if (!obj['$' + i]) {
+                                obj['$' + i] = {};
+                            }
+                        }
+                    }
+
+
+
+                    obj.data = data;
+                    obj.original_data = RG.arrayClone(data);
+
+
+
+
+
+                    if (labelsAbove) {
+                        obj.set('labelsAbove', true);
+                        RG.redraw();
+                    }
+                    callback(obj);
+                }
+            };
+
+            iterator();
+
+            return this;
+        };
+
+
+
+
 
 
 

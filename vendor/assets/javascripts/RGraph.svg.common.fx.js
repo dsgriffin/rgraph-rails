@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -736,11 +736,11 @@
             jQuery('#rgraph_hblinds_' + i + '_' + obj.id).animate({height: 0}, duration);
         }
 
-        setTimeout(function () {this.container.removeChild(doc.getElementById('rgraph_hblinds_0_' + obj.id));}, duration);
-        setTimeout(function () {this.container.removeChild(doc.getElementById('rgraph_hblinds_1_' + obj.id));}, duration);
-        setTimeout(function () {this.container.removeChild(doc.getElementById('rgraph_hblinds_2_' + obj.id));}, duration);
-        setTimeout(function () {this.container.removeChild(doc.getElementById('rgraph_hblinds_3_' + obj.id));}, duration);
-        setTimeout(function () {this.container.removeChild(doc.getElementById('rgraph_hblinds_4_' + obj.id));}, duration);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_hblinds_0_' + obj.id));}, duration);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_hblinds_1_' + obj.id));}, duration);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_hblinds_2_' + obj.id));}, duration);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_hblinds_3_' + obj.id));}, duration);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_hblinds_4_' + obj.id));}, duration);
         setTimeout(function () {callback(obj);}, duration);
         
         return this;
@@ -841,21 +841,21 @@
                 div.style.top             = 0;
                 div.style.position        = 'absolute';
                 div.style.backgroundColor = color;
-            this.container.appendChild(div);
+            obj.container.appendChild(div);
 
             jQuery('#rgraph_vblinds_' + i + '_' + obj.id).animate({width: 0}, duration);
         }
 
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_0_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_1_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_2_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_3_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_4_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_5_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_6_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_7_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_8_' + obj.id));}, duration + 100);
-        setTimeout(function () {doc.body.removeChild(doc.getElementById('rgraph_vblinds_9_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_0_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_1_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_2_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_3_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_4_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_5_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_6_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_7_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_8_' + obj.id));}, duration + 100);
+        setTimeout(function () {obj.container.removeChild(doc.getElementById('rgraph_vblinds_9_' + obj.id));}, duration + 100);
         
         setTimeout(function () {callback(obj);}, duration + 100);
 
@@ -973,7 +973,7 @@
         
         jQuery(this.svg).animate({left:0,top:0}, duration, function ()
         {
-            callback(this);
+            callback(obj);
         });
         
         return this;
@@ -1223,13 +1223,13 @@
 
         setTimeout(function ()
         {
-            this.container.removeChild(doc.getElementById('rgraph_vscissors_0' + '_' + this.id));
-            this.container.removeChild(doc.getElementById('rgraph_vscissors_1' + '_' + this.id));
-            this.container.removeChild(doc.getElementById('rgraph_vscissors_2' + '_' + this.id));
-            this.container.removeChild(doc.getElementById('rgraph_vscissors_3' + '_' + this.id));
-            this.container.removeChild(doc.getElementById('rgraph_vscissors_4' + '_' + this.id));
+            obj.container.removeChild(doc.getElementById('rgraph_vscissors_0' + '_' + obj.id));
+            obj.container.removeChild(doc.getElementById('rgraph_vscissors_1' + '_' + obj.id));
+            obj.container.removeChild(doc.getElementById('rgraph_vscissors_2' + '_' + obj.id));
+            obj.container.removeChild(doc.getElementById('rgraph_vscissors_3' + '_' + obj.id));
+            obj.container.removeChild(doc.getElementById('rgraph_vscissors_4' + '_' + obj.id));
             
-            callback(this);
+            callback(obj);
 
         }, duration);
 

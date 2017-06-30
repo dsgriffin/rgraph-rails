@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -42,7 +42,7 @@
         zIndex:     3,
         borderRadius: '5px',
         boxShadow:  'rgba(96,96,96,0.5) 0 0 5px',
-        opacity:    0
+        transition: 'left ease-out .25s, top ease-out .25s'
     };
 
 
@@ -60,9 +60,7 @@
         RG.SVG.fireCustomEvent(obj, 'onbeforetooltip');
 
 
-
-
-        if (RG.SVG.trim(opt.text).length === 0) {
+        if (!opt.text || typeof opt.text === 'undefined' || RG.SVG.trim(opt.text).length === 0) {
             return;
         }
 
@@ -81,19 +79,60 @@
 
 
 
+
+
+
+
+
         // Create the tooltip DIV element
-        var tooltipObj       = document.createElement('DIV');
-        tooltipObj.className = prop.tooltipsCssClass;
+        if (!RG.SVG.REG.get('tooltip')) {
 
-
-
-        // Add the default CSS to the tooltip
-        for (var i in RG.SVG.tooltips.style) {
-            if (typeof i === 'string') {
-                tooltipObj.style[i] = RG.SVG.tooltips.style[i];
+            var tooltipObj        = document.createElement('DIV');
+            tooltipObj.className  = prop.tooltipsCssClass;
+    
+    
+    
+    
+            // Add the default CSS to the tooltip
+            for (var i in RG.SVG.tooltips.style) {
+                if (typeof i === 'string') {
+                    tooltipObj.style[i] = RG.SVG.tooltips.style[i];
+                }
             }
+
+
+
+
+
+        // Reuse an existing tooltip
+        } else {
+            var tooltipObj = RG.SVG.REG.get('tooltip');
+            tooltipObj.__object__.removeHighlight();
+            
+            // This prevents the object from continuously growing
+            tooltipObj.style.width = '';
         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (RG.SVG.REG.get('tooltip-lasty')) {
+            tooltipObj.style.left = RG.SVG.REG.get('tooltip-lastx') + 'px';
+            tooltipObj.style.top  = RG.SVG.REG.get('tooltip-lasty') + 'px';
+        }
 
         tooltipObj.innerHTML  = opt.text;
         tooltipObj.__text__   = opt.text; // This is set because the innerHTML can change when it's set
@@ -130,7 +169,7 @@
         
         var width  = tooltipObj.offsetWidth,
             height = tooltipObj.offsetHeight;
-        
+
         // Move the tooltip into position
         tooltipObj.style.left = opt.event.pageX - (width / 2) + 'px';
         tooltipObj.style.top  = opt.event.pageY - height - 15 + 'px';
@@ -142,10 +181,9 @@
         * Set the width on the tooltip so it doesn't resize if the window is resized
         */
         tooltipObj.style.width = width + 'px';
-        
-        
-        // Fade the tooltip in if the tooltip effect is "fade"
-        if (prop.tooltipsEffect === 'fade') {
+
+        // Fade the tooltip in if the tooltip is not the first view
+        if (!RG.SVG.REG.get('tooltip-lastx')) {
             for (var i=0; i<=30; ++i) {
                 (function (idx)
                 {
@@ -155,9 +193,6 @@
                     }, (idx / 30) * 200);
                 })(i);
             }
-        } else {
-            tooltipObj.style.opacity  = 1;
-            tooltipObj.style.display  = 'inline-block';
         }
 
 
@@ -202,7 +237,7 @@
         };
 
         // Cancel the click event
-        tooltipObj.onclick = function (e)
+        tooltipObj.onclick  = function (e)
         {
             if (e.button == 0) {
                 e.stopPropagation();
@@ -210,16 +245,22 @@
         };
         
         // Add the body click handler that clears the tooltip
-        document.body.addEventListener('mousedown', function (e)
+        document.body.addEventListener('mouseup', function (e)
         {
             RG.SVG.hideTooltip();
         }, false);
+
+
+
 
 
         /**
         * Keep a reference to the tooltip in the registry
         */
         RG.SVG.REG.set('tooltip', tooltipObj);
+        RG.SVG.REG.set('tooltip-lastx', parseFloat(tooltipObj.style.left));
+        RG.SVG.REG.set('tooltip-lasty', parseFloat(tooltipObj.style.top));
+
 
         //
         // Fire the tooltip event

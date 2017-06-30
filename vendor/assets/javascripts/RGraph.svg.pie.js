@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -26,6 +26,55 @@
 
     RG.SVG.Pie = function (conf)
     {
+        //
+        // A setter that the constructor uses (at the end)
+        // to set all of the properties
+        //
+        // @param string name  The name of the property to set
+        // @param string value The value to set the property to
+        //
+        this.set = function (name, value)
+        {
+            if (arguments.length === 1 && typeof name === 'object') {
+                for (i in arguments[0]) {
+                    if (typeof i === 'string') {
+                    
+                        var ret = RG.SVG.commonSetter({
+                            object: this,
+                            name:   i,
+                            value:  arguments[0][i]
+                        });
+                        
+                        name  = ret.name;
+                        value = ret.value;
+
+                        this.set(name, value);
+                    }
+                }
+            } else {
+                    
+                var ret = RG.SVG.commonSetter({
+                    object: this,
+                    name:   name,
+                    value:  value
+                });
+                
+                name  = ret.name;
+                value = ret.value;
+
+                this.properties[name] = value;
+            }
+
+            return this;
+        };
+
+
+
+
+
+
+
+
         this.id              = conf.id;
         this.uid             = RG.SVG.createUID();
         this.container       = document.getElementById(this.id);
@@ -73,6 +122,8 @@
             textBold: false,
             textItalic: false,
             labels: [],
+            labelsSticks: true,
+            labelsSticksHlength: 50,
 
             linewidth: 1,
             
@@ -91,7 +142,7 @@
             titleX: null,
             titleY: null,
             titleHalign: 'center',
-            titleValign: 'bottom',
+            titleValign: null,
             titleColor:  'black',
             titleFont:   null,
             titleBold:   false,
@@ -102,7 +153,7 @@
             titleSubtitleX: null,
             titleSubtitleY: null,
             titleSubtitleHalign: 'center',
-            titleSubtitleValign: 'top',
+            titleSubtitleValign: null,
             titleSubtitleColor:  '#aaa',
             titleSubtitleFont:   null,
             titleSubtitleBold:   false,
@@ -117,13 +168,26 @@
             exploded: 0,
             roundRobinMultiplier: 1,
             
+            donut:              false,
+            donutWidth:         75,
+
+            key:            null,
+            keyColors:      null,
+            keyOffsetx:     0,
+            keyOffsety:     0,
+            keyTextOffsetx: 0,
+            keyTextOffsety: -1,
+            keyTextSize:    null,
+            keyTextBold:    null,
+            keyTextItalic:  null,
+
             attribution:        true,
             attributionX:       null,
             attributionY:       null,
-            attributionHref:    'http://www.rgraph.net/svg/index.html',
+            attributionHref:    null,// Default is set in RGraph.svg.common.core.js
             attributionHalign:  'right',
             attributionValign:  'bottom',
-            attributionSize:    8,
+            attributionSize:    7,
             attributionColor:   'gray',
             attributionFont:    'sans-serif',
             attributionItalic:  false,
@@ -145,31 +209,6 @@
 
 
         var prop = this.properties;
-
-
-
-
-        //
-        // A setter that the constructor uses (at the end)
-        // to set all of the properties
-        //
-        // @param string name  The name of the property to set
-        // @param string value The value to set the property to
-        //
-        this.set = function (name, value)
-        {
-            if (arguments.length === 1 && typeof name === 'object') {
-                for (i in arguments[0]) {
-                    if (typeof i === 'string') {
-                        this.set(i, arguments[0][i]);
-                    }
-                }
-            } else {
-                this.properties[name] = value;
-            }
-
-            return this;
-        };
 
 
 
@@ -216,21 +255,14 @@
             // Allow the centerx/centery/radius to be a plus/minus
             //
             if (typeof prop.radius === 'string' && prop.radius.match(/^\+|-\d+$/) )   this.radius  += parseFloat(prop.radius);
-            if (typeof prop.centerx === 'string' && prop.centerx.match(/^\+|-\d+$/) ) this.centery += parseFloat(prop.centerx);
-            if (typeof prop.centery === 'string' && prop.centery.match(/^\+|-\d+$/) ) this.centerx += parseFloat(prop.centery);
+            if (typeof prop.centerx === 'string' && prop.centerx.match(/^\+|-\d+$/) ) this.centerx += parseFloat(prop.centerx);
+            if (typeof prop.centery === 'string' && prop.centery.match(/^\+|-\d+$/) ) this.centery += parseFloat(prop.centery);
 
 
-            /**
-            * Parse the colors. This allows for simple gradient syntax
-            * 
-            * ** must be after the cx/cy/r has been calcuated **
-            */
-            if (!this.colorsParsed) {
-                this.parseColors();
-                
-                // Don't want to do this again
-                this.colorsParsed = true;
-            }
+            // Parse the colors for gradients
+            // Must be after the cx/cy/r calculations
+            RG.SVG.resetColorsToOriginalValues({object:this});
+            this.parseColors();
 
 
             // Go through the data and work out the maximum value
@@ -261,8 +293,22 @@
 
 
             // Draw the labels
-            this.drawLabels();
-            
+            if (prop.labelsSticks) {
+                this.drawLabelsSticks();
+            } else {
+                this.drawLabels();
+            }
+
+
+
+
+            // Draw the key
+            if (typeof prop.key !== null && RG.SVG.drawKey) {
+                RG.SVG.drawKey(this);
+            } else if (!RGraph.SVG.isNull(prop.key)) {
+                alert('The drawKey() function does not exist - have you forgotten to include the key library?');
+            }
+
             
             // Add the attribution link. If you're adding this elsewhere on your page/site
             // and you don't want it displayed then there are options available to not
@@ -374,14 +420,54 @@
                 });
 
 
+
+
+
+                // Donut
+                if (prop.donut) {
+                
+                    var donutWidth = prop.donutWidth;
+                
+                    var donut_path = RG.SVG.TRIG.getArcPath({
+                        cx:     this.angles[i].cx,
+                        cy:     this.angles[i].cy,
+                        r:      this.radius - donutWidth,
+                        start:  this.angles[i].end,
+                        end:    this.angles[i].start,
+                        moveto: false,
+                        anticlockwise: true
+                    });
+                    
+                    var xy = RG.SVG.TRIG.getRadiusEndPoint({
+                        angle: this.angles[i].end - RG.SVG.TRIG.HALFPI,
+                        r:     this.radius - donutWidth
+                    });
+                    
+                
+                
+                
+                    path =   path
+                           + " L {1} {2} ".format(xy[0] + this.angles[i].cx, xy[1] + this.angles[i].cy)
+                           + donut_path
+                           + " Z";
+                
+                
+                } else {
+                
+                    path = path + " L {1} {2} ".format(
+                        this.angles[i].cx,
+                        this.angles[i].cy
+                    ) + " Z"
+                }
+
+
+
                 var arc = RG.SVG.create({
                     svg: this.svg,
+                    parent: this.svg.all,
                     type: 'path',
                     attr: {
-                        d: path + " L {1} {2} Z".format(
-                            this.angles[i].cx,
-                            this.angles[i].cy
-                        ),
+                        d: path,
                         fill: prop.colors[i],
                         stroke: prop.strokestyle,
                         'stroke-width': prop.linewidth,
@@ -413,6 +499,8 @@
                     {
                         arc.addEventListener(prop.tooltipsEvent, function (e)
                         {
+                            obj.removeHighlight();
+
                             // Show the tooltip
                             RG.SVG.tooltip({
                                 object: obj,
@@ -497,7 +585,7 @@
                     y = endpoint[1] + angles[i].cy,
                     valign,
                     halign;
-                
+
                 // Figure out the valign and halign based on the quadrant
                 // the the center of the sgement is in.
                 if (angles[i].halfway > 0 && angles[i].halfway < RG.SVG.TRIG.HALFPI) {
@@ -516,6 +604,7 @@
 
                 RG.SVG.text({
                     object: this,
+                    parent: this.svg.all,
                     text: typeof labels[i] === 'string' ? labels[i] : '',
                     font: prop.textFont,
                     size: prop.textSize,
@@ -537,6 +626,202 @@
 
 
 
+        //
+        // This function draws the labels in a list format
+        //
+        this.drawLabelsSticks = function ()
+        {
+            var labels_right  = [],
+                labels_left   = [],
+                labels_coords = [];
+
+            for (var i=0; i<this.angles.length; ++i) {
+
+                var angle          = (this.angles[i].start + ((this.angles[i].end - this.angles[i].start) / 2)) - RGraph.SVG.TRIG.HALFPI, // Midpoint
+                    
+                    endpoint_inner = RG.SVG.TRIG.getRadiusEndPoint({angle: angle, r: this.radius + 5}),
+                    endpoint_outer = RG.SVG.TRIG.getRadiusEndPoint({angle: angle, r: this.radius + 20}),
+                    
+                    explosion      = [
+                        (typeof prop.exploded === 'number' ? prop.exploded : prop.exploded[i]),
+                        ma.cos(angle) * (typeof prop.exploded === 'number' ? prop.exploded : prop.exploded[i]),
+                        ma.sin(angle) * (typeof prop.exploded === 'number' ? prop.exploded : prop.exploded[i])
+                    ];
+                
+                // Initialise this array
+                labels_coords[i] = [];
+                
+                // Initialise this
+                var labels = {};
+
+
+
+
+
+                // Push the label into the correct array
+                if (angle > RG.SVG.TRIG.HALFPI) {
+                
+                    var index = labels_left.length;
+
+                    labels_left[index]        = [];
+                    labels_left[index].text   = prop.labels[i];
+                    labels_left[index].halign = 'right';
+                    labels                    = labels_left;
+
+                    labels_coords[i].halign = 'right';
+                } else {
+                    
+                    var index = labels_right.length; 
+
+                    labels_right[index]        = [];
+                    labels_right[index].text   = prop.labels[i];
+                    labels_right[index].halign = 'right';
+                    labels                     = labels_right;
+
+                    labels_coords[i].halign = 'left';
+                }
+
+
+
+
+
+
+
+                endpoint_inner[0] += (explosion[1] || 0);
+                endpoint_inner[1] += (explosion[2] || 0);
+                
+                endpoint_outer[0] += (explosion[1] || 0);
+                endpoint_outer[1] += (explosion[2] || 0);
+            
+                var x,y;
+
+                if (labels[index].text) {
+                    var stick = RG.SVG.create({
+                        svg: this.svg,
+                        parent: this.svg.all,
+                        type: 'path',
+                        attr: {
+                            d: 'M {1} {2} L {3} {4}'.format(
+                                this.centerx + endpoint_inner[0],
+                                this.centery + endpoint_inner[1],
+                                this.centerx + endpoint_outer[0],
+                                this.centery + endpoint_outer[1]
+                            ),
+                            stroke: '#999',
+                            fill: 'rgba(0,0,0,0)'
+                        }
+                    });
+                }
+                
+                // The path is altered later so this needs saving
+                if (stick) {
+                    labels[index].stick = stick;
+                }
+                
+                x = (this.centerx + endpoint_outer[0] + (angle > 1.57 ? -50 : 50));
+                y = (this.centery + endpoint_outer[1]);
+
+
+                labels_coords[i].x      = x ;
+                labels_coords[i].y      = y;
+                labels_coords[i].text = prop.labels[i];
+            }
+
+            // Calculate the spacing for each side
+            var vspace_right = (this.height - prop.gutterTop - prop.gutterBottom) / labels_right.length;
+            var vspace_left  = (this.height - prop.gutterTop - prop.gutterBottom) / labels_left.length;
+
+            // Reset these
+            x = y = 0;
+
+
+
+
+
+            // Loop through the RHS labels
+            for (var i=0; i<labels_right.length; ++i) {
+                if (labels_right[i] && labels_right[i].text) {
+
+                    x = this.centerx + this.radius + 100;
+                    y = prop.gutterTop + (vspace_right * i) + (vspace_right / 2);
+
+                
+                    // Add the label to the scene
+                    RGraph.SVG.text({
+                        object: this,
+                        parent: this.svg.all,
+                        text:   typeof labels_right[i].text === 'string' ? labels_right[i].text : '',
+                        font:   prop.textFont,
+                        size:   prop.textSize,
+                        x:      x,
+                        y:      y,
+                        valign: 'center',
+                        halign: labels_right[i].text,
+                        bold:   prop.textBold,
+                        italic: prop.textItalic,
+                        color:  prop.textColor
+                    });
+                    
+                    // Now update the path of the stick
+                    labels_right[i].stick.setAttribute(
+                        'd',
+                        labels_right[i].stick.getAttribute('d') + ' H {3} L {1} {2} '.format(
+                            x - 5,
+                            y,
+                            this.centerx + this.radius + prop.labelsSticksHlength
+                        )
+                    );
+                }
+            }
+
+
+
+
+
+            // Loop through the LHS labels
+            for (var i=0; i<labels_left.length; ++i) {
+                if (labels_left[i] && labels_left[i].text) {
+
+                    x = this.centerx - this.radius - 100;
+                    y = this.height - (prop.gutterTop + (vspace_left * i) + (vspace_left / 2));
+
+                
+                    // Add the label to the scene
+                    RGraph.SVG.text({
+                        object: this,
+                        parent: this.svg.all,
+                        text:   typeof labels_left[i].text === 'string' ? labels_left[i].text : '',
+                        font:   prop.textFont,
+                        size:   prop.textSize,
+                        x:      x - 7,
+                        y:      y,
+                        valign: 'center',
+                        halign: labels_left[i].halign,
+                        bold:   prop.textBold,
+                        italic: prop.textItalic,
+                        color:  prop.textColor
+                    });
+
+                    // Now update the path of the stick
+                    labels_left[i].stick.setAttribute(
+                        'd',
+                        labels_left[i].stick.getAttribute('d') + ' H {3} L {1} {2} '.format(
+                            x - 5,
+                            y,
+                            this.centerx - this.radius - prop.labelsSticksHlength
+                        )
+                    );
+                }
+            }
+        };
+
+
+
+
+
+
+
+
         /**
         * This function can be used to highlight a segment on the chart
         * 
@@ -546,6 +831,7 @@
         {
             var highlight = RG.SVG.create({
                 svg: this.svg,
+                parent: this.svg.all,
                 type: 'path',
                 attr: {
                     d: segment.getAttribute('d'),
@@ -675,11 +961,56 @@
                     var path = RG.SVG.TRIG.getArcPath({
                         cx:    obj.centerx + explodedX,
                         cy:    obj.centery + explodedY,
-                        r:     obj.radius,// * prop.roundRobinMultiplier,
+                        r:     obj.radius,
                         start: obj.angles[i].start,
                         end:   obj.angles[i].end
                     });
+
+
+
+
+
+                    // Donut
+                    if (prop.donut) {
                     
+                        var donutWidth = prop.donutWidth;
+                    
+                        var donut_path = RG.SVG.TRIG.getArcPath({
+                            cx:     obj.angles[i].cx,
+                            cy:     obj.angles[i].cy,
+                            r:      obj.radius - donutWidth,
+                            start:  obj.angles[i].end,
+                            end:    obj.angles[i].start,
+                            moveto: false,
+                            anticlockwise: true
+                        });
+                        
+                        var xy = RG.SVG.TRIG.getRadiusEndPoint({
+                            angle: obj.angles[i].end - RG.SVG.TRIG.HALFPI,
+                            r:     obj.radius - donutWidth
+                        });
+                    
+                        path =   path
+                               + " L {1} {2} ".format(xy[0] + obj.angles[i].cx, xy[1] + obj.angles[i].cy)
+                               + donut_path
+                               + " Z";
+                    
+                    } else {
+                    
+                        path = path + " L {1} {2} ".format(
+                            obj.angles[i].cx,
+                            obj.angles[i].cy
+                        ) + " Z"
+                    }
+
+
+
+
+
+
+
+
+
                     path = path + " L {1} {2} Z".format(
                         obj.centerx + explodedX,
                         obj.centery + explodedY
@@ -751,6 +1082,26 @@
             func(this);
             
             return this;
+        };
+
+
+
+
+
+
+
+
+        //
+        // Remove highlight from the chart (tooltips)
+        //
+        this.removeHighlight = function ()
+        {
+            var highlight = RG.SVG.REG.get('highlight');
+            if (highlight && highlight.parentNode) {
+                highlight.parentNode.removeChild(highlight);
+            }
+            
+            RG.SVG.REG.set('highlight', null);
         };
 
 

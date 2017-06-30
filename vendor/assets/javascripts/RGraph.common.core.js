@@ -1,4 +1,5 @@
-// version: 2017-01-02
+// version: 2017-05-08
+    /**
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -3718,19 +3719,29 @@
             //                        clearing to that canvas.
             RG.text2.domNodeCache.reset = function ()
             {
+
                 // Limit the clearing to a single canvas tag
                 if (arguments[0]) {
-                
-                    var nodes = RG.text2.domNodeCache[arguments[0].id];
+                    
+                    if (typeof arguments[0] === 'string') {
+                        var ca = document.getElementById(arguments[0])
+                    } else {
+                        var ca = arguments[0];
+                    }
+
+                    var nodes = RG.text2.domNodeCache[ca.id];
                 
                     for (j in nodes) {
                         
-                        var node = RG.text2.domNodeCache[arguments[0].id][j];
+                        var node = RG.text2.domNodeCache[ca.id][j];
                         
                         if (node && node.parentNode) {
                             node.parentNode.removeChild(node);
                         }
                     }
+                    
+                    RG.text2.domNodeCache[ca.id]          = [];
+                    RG.text2.domNodeDimensionCache[ca.id] = [];
 
                 // Clear all DOM text from all tags
                 } else {
@@ -3741,6 +3752,9 @@
                             }
                         }
                     }
+
+                    RG.text2.domNodeCache          = [];
+                    RG.text2.domNodeDimensionCache = [];
                 }
             };
 
@@ -4710,7 +4724,7 @@
 
 
     /**
-    * Generates logs for... ...log charts
+    * Generates logs for... log charts
     * 
     * @param number n    The number to generate the log for
     * @param number base The base to use
@@ -4849,10 +4863,73 @@
 
 
 
+
+
+
+
     /**
-    * NOT USED ANY MORE
+    * Put the attribution on the canvas IF textAccessible is enabled.
+    * By default it adds the attribution in the bottom right corner.
+    * 
+    * @param object obj The chart object
     */
-    RG.att = function (ca){}
+    RG.att = 
+    RG.attribution = function (obj)
+    {
+        var ca        = obj.canvas,
+            co        = obj.context,
+            prop      = obj.properties;
+
+        if (!ca || !co) {
+            return;
+        }
+
+        // Needs to be a new var... statement here
+        var width     = ca.width,
+            height    = ca.height,
+            wrapper   = document.getElementById('cvs').__object__.canvas.parentNode,
+            text      = prop['chart.attribution.text'] || 'Free Charts with RGraph.net',
+            x         = prop['chart.attribution.x'],           // null
+            y         = prop['chart.attribution.y'],           // null
+            bold      = prop['chart.attribution.bold'],   // false
+            italic    = prop['chart.attribution.italic'], // true
+            font      = prop['chart.attribution.font'] || 'sans-serif', // sans-serif
+            size      = prop['chart.attribution.size'] || 8, // 8
+            underline = prop['chart.attribution.underline'] ? 'underline' : 'none', // false
+            color     = typeof prop['chart.attribution.color'] === 'string' ? prop['chart.attribution.color'] : '',
+            href      = typeof prop['chart.attribution.href'] === 'string' ? prop['chart.attribution.href'] : 'http://www.rgraph.net/canvas/index.html';
+
+        if (wrapper.attribution_node) {
+            return;
+        }
+
+        
+        // Take some measurements
+        var measurements = RG.measureText(text, bold, font, size);
+
+        // Create the link
+        var a                      = document.createElement('A');
+            a.href                 = href;
+            a.innerHTML            = text;
+            a.target               = '_blank';
+            a.style.position       = 'absolute';
+            a.style.left           = typeof x === 'number' ? x : wrapper.offsetWidth - measurements[0] - 5 + 'px';
+            a.style.top            = typeof y === 'number' ? y : wrapper.offsetHeight - measurements[1] + 'px';
+            a.style.fontSize       = size + 'pt';
+            a.style.fontStyle      = typeof italic === 'boolean'  ? (italic ? 'italic' : '') : 'italic',
+            a.style.fontWeight     = bold ? 'bold' : '',
+            a.style.textDecoration = underline;
+            a.style.fontFamily     = font;
+            a.style.color          = color;
+        wrapper.appendChild(a);
+        
+        wrapper.attribution_node = a;
+    };
+
+
+
+
+
 
 
 

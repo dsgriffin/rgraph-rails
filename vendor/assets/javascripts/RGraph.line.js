@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -894,8 +894,21 @@
             /**
             * If the line is filled re-stroke the lines
             */
+            if (prop['chart.outofbounds.clip']) {
+                pa2(
+                    co,
+                    'sa b r % % % % cl b',
+                    0,
+                    this.gutterTop,
+                    ca.width,
+                    ca.height - this.gutterTop - this.gutterBottom
+                );
+            }
+
+
             if (prop['chart.filled'] && prop['chart.filled.accumulative'] && !prop['chart.curvy']) {
-        
+                
+
                 for (var i=0; i<this.coords2.length; ++i) {
         
                     co.beginPath();
@@ -1005,6 +1018,11 @@
 
 
             }
+
+
+        if (prop['chart.outofbounds.clip']) {
+            co.restore();
+        }
         co.restore();
     
         // ???
@@ -1939,7 +1957,7 @@
                     lineData[i] *= prop['chart.animation.factor'];
                 }
             }
-    
+
             var penUp = false;
             var yPos  = null;
             var xPos  = 0;
@@ -2009,7 +2027,7 @@
 
             // Store the coords in another format, indexed by line number
             this.coords2[index] = lineCoords;
-    
+
             /**
             * For IE only: Draw the shadow ourselves as ExCanvas doesn't produce shadows
             */
@@ -2229,7 +2247,7 @@
 
                 // Now redraw the lines with the correct line width
                 this.SetShadow(index);
-                this.RedrawLine(lineCoords, color, linewidth, index);
+                this.redrawLine(lineCoords, color, linewidth, index);
                 co.stroke();
                 RG.NoShadow(this);
 
@@ -2661,6 +2679,8 @@
                 return;
             }
     
+
+            
             co.strokeStyle = (typeof(color) == 'object' && color && color.toString().indexOf('CanvasGradient') == -1 ? color[0] : color);
             co.lineWidth = linewidth;
 
@@ -2767,6 +2787,8 @@
                     }
                 }
             }
+            
+
 
             if (prop['chart.dashed'] || prop['chart.dotted']) {
                 co.setLineDash([1,0]);

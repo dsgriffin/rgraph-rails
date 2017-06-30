@@ -1,4 +1,4 @@
-// version: 2017-01-02
+// version: 2017-05-08
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
@@ -71,6 +71,22 @@
                 }
             }
         }
+
+
+
+
+
+        // First, if there's only been a single passed to us, convert it to
+        // the multiple dataset format
+        if (!RGraph.isArray(this.data[0][0])) {
+            this.data = [this.data];
+        }
+
+
+
+
+
+
 
         // If necessary convert X/Y values passed as strings to numbers
         for (var i=0,len=this.data.length; i<len; ++i) { // Datasets
@@ -411,6 +427,7 @@
 
 
 
+
         /**
         * A simple setter
         * 
@@ -509,6 +526,10 @@
 
 
 
+
+
+
+
         /**
         * A simple getter
         * 
@@ -531,6 +552,10 @@
     
             return prop[name];
         };
+
+
+
+
 
 
 
@@ -805,6 +830,10 @@
 
 
 
+
+
+
+
         /**
         * Draws the axes of the scatter graph
         */
@@ -914,18 +943,28 @@
                     }
                 }
             }
-    
-    
+
+
+
+
+
+
+
+
             /**
             * Draw the X tickmarks
             */
             if (prop['chart.numxticks'] > 0 && prop['chart.xaxis']) {
 
                 var x    = 0,
-                    y    = this.getYCoord(prop['chart.ylabels.invert'] ? this.scale2.max : 0) - 3,
+                    y    = this.getYCoord(prop['chart.ylabels.invert'] ? this.scale2.max : (this.scale2.max > 0 && this.scale2.min > 0 ? this.scale2.min : 0) ) - 3,
                     size = 3;
-                
+
                 if (prop['chart.ymin'] === 0 && prop['chart.xaxispos'] === 'bottom') {
+                    y += 3;
+                }
+
+                if (this.scale2.max > 0 && this.scale2.min > 0) {
                     y += 3;
                 }
 
@@ -961,17 +1000,14 @@
             */
             co.lineWidth = 1;
         };
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
         /**
         * Draws the labels on the scatter graph
         */
@@ -1594,20 +1630,14 @@
                 }
             }
         };
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
         /**
         * Draws the actual scatter graph marks
         * 
@@ -1658,6 +1688,10 @@
                 );
             }
         };
+
+
+
+
 
 
 
@@ -1973,6 +2007,10 @@
 
 
 
+
+
+
+
         /**
         * Draws an optional line connecting the tick marks.
         * 
@@ -2045,6 +2083,10 @@
 
 
 
+
+
+
+
         /**
         * Returns the linewidth
         * 
@@ -2068,6 +2110,10 @@
                 alert('[SCATTER] Error! chart.linewidth should be a single number or an array of one or more numbers');
             }
         };
+
+
+
+
 
 
 
@@ -2107,6 +2153,10 @@
                 }
             }
         };
+
+
+
+
 
 
 
@@ -2206,6 +2256,10 @@
 
 
 
+
+
+
+
         /**
         * This function makes it much easier to get the (if any) point that is currently being hovered over.
         * 
@@ -2283,6 +2337,10 @@
 
 
 
+
+
+
+
         /**
         * Draws the above line labels
         */
@@ -2332,6 +2390,10 @@
                 }
             }
         };
+
+
+
+
 
 
 
@@ -2405,6 +2467,10 @@
 
 
 
+
+
+
+
         /**
         * When you click on the chart, this method can return the X value at that point.
         * 
@@ -2441,6 +2507,10 @@
 
 
 
+
+
+
+
         /**
         * Each object type has its own Highlight() function which highlights the appropriate shape
         * 
@@ -2466,6 +2536,10 @@
 
 
 
+
+
+
+
         /**
         * The getObjectByXY() worker method. Don't call this call:
         * 
@@ -2487,6 +2561,10 @@
                 return this;
             }
         };
+
+
+
+
 
 
 
@@ -2528,6 +2606,10 @@
             
             return x;
         };
+
+
+
+
 
 
 
@@ -2585,6 +2667,10 @@
 
 
 
+
+
+
+
         /**
         * Returns the applicable Y COORDINATE when given a Y value
         * 
@@ -2597,7 +2683,7 @@
             if (typeof(value) != 'number') {
                 return null;
             }
-    
+
             var invert          = prop['chart.ylabels.invert'];
             var xaxispos        = prop['chart.xaxispos'];
             var graphHeight     = ca.height - this.gutterTop - this.gutterBottom;
@@ -2609,7 +2695,7 @@
             if (value > ymax || (prop['chart.xaxispos'] == 'bottom' && value < ymin) || (prop['chart.xaxispos'] == 'center' && ((value > 0 && value < ymin) || (value < 0 && value > (-1 * ymin))))) {
                 return null;
             }
-    
+
             /**
             * This calculates scale values if the X axis is in the center
             */
@@ -2635,20 +2721,22 @@
             } else {
     
                 coord = ((value - ymin) / (ymax - ymin)) * graphHeight;
-                
+
                 if (invert) {
                     coord = graphHeight - coord;
                 }
     
                 // Invert the coordinate because the Y scale starts at the top
                 coord = graphHeight - coord;
-    
+
                 // And add on the top gutter
                 coord = this.gutterTop + coord;
             }
     
             return coord;
         };
+
+
 
 
 
@@ -2765,6 +2853,9 @@
 
 
 
+
+
+
         /**
         * This allows for easy specification of gradients
         */
@@ -2849,6 +2940,10 @@
 
 
 
+
+
+
+
         /**
         * Use this function to reset the object to the post-constructor state. Eg reset colors if
         * need be etc
@@ -2856,6 +2951,10 @@
         this.reset = function ()
         {
         };
+
+
+
+
 
 
 
@@ -2891,6 +2990,10 @@
 
 
 
+
+
+
+
         /**
         * This function handles highlighting an entire data-series for the interactive
         * key
@@ -2909,6 +3012,10 @@
                 });
             }
         };
+
+
+
+
 
 
 
@@ -2937,6 +3044,10 @@
 
 
 
+
+
+
+
         /**
         * This function runs once only
         * (put at the end of the file (before any effects))
@@ -2944,6 +3055,10 @@
         this.firstDrawFunc = function ()
         {
         };
+
+
+
+
 
 
 
@@ -2992,6 +3107,10 @@
 
 
 
+
+
+
+
         /**
         * This helps the Gantt reset colors when the reset function is called.
         * It handles going through the data and resetting the colors.
@@ -3019,10 +3138,18 @@
 
 
 
+
+
+
+
         /**
         * Register the object
         */
         RG.register(this);
+
+
+
+
 
 
 
