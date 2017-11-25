@@ -11,13 +11,13 @@ Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asse
 Include the gem in your application's Gemfile:
 
 ```ruby
-gem 'rgraph-rails', '~> 4.62'
+gem 'rgraph-rails', '~> 4.64'
 ```
 
 And then execute:
 
 ```ruby
-    $ bundle
+$ bundle
 ```
 
 ## Usage
@@ -28,15 +28,17 @@ In your `application.js`, include the core RGraph file
 //= require RGraph.common.core
 ```
 
-Next, include one or more graph types - depending on which one's you'd like to use. For example
+Just below that, include one or more graph types you'd like to use. For example:
 
 ```ruby
 //= require RGraph.hprogress.js
 ```
 
-Then you'd add the Graphical data to your `example.coffee`/`example.js`
+Then add a simple graph
 
 ```coffeescript
+// example.coffee
+
 $(window).load ->
   hprogress = new RGraph.HProgress({
     id: 'cvs',
@@ -46,15 +48,16 @@ $(window).load ->
   }).draw()
 ```
 
-And finally the canvas that holds the graph in your `example.html.haml`/`example.html.erb`
+And finally the canvas that will contain the graph
 
 ```haml
+# example.html.haml
+
 %canvas#cvs{:height => "100", :width => "600"}
   [No canvas support]
 ```
 
 For detailed documentation concerning the types of graphs/charts and all other available options, [please see the official docs](http://www.rgraph.net/docs/charts-index.html).
-
 
 ## Development
 
@@ -77,4 +80,3 @@ Bug reports and pull requests are welcome. This project is intended to be a safe
 ## License
 
 MIT
-
