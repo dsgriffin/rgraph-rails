@@ -16,7 +16,9 @@ gem 'rgraph-rails', '~> 4.62'
 
 And then execute:
 
+```ruby
     $ bundle
+```
 
 ## Usage
 
@@ -31,6 +33,7 @@ Next, include one or more graph types - depending on which one's you'd like to u
 ```ruby
 //= require RGraph.hprogress.js
 ```
+
 Then you'd add the Graphical data to your `example.coffee`/`example.js`
 
 ```coffeescript
@@ -58,10 +61,6 @@ For detailed documentation concerning the types of graphs/charts and all other a
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `bundle exec rspec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`.
-
-## Deployment
-
-Automatically on tagged release to master. Reading: https://docs.travis-ci.com/user/deployment/rubygems/
 
 ## Versioning
 

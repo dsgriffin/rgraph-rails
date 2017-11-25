@@ -1,3 +1,3 @@
 module RgraphRails
-  VERSION = "4.62"
+  VERSION = "4.64"
 end
