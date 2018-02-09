@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/dsgriffin/rgraph-rails.svg?branch=master)](https://travis-ci.org/dsgriffin/rgraph-rails)
 [![Gem Version](https://badge.fury.io/rb/rgraph-rails.svg)](https://badge.fury.io/rb/rgraph-rails)
-![](https://img.shields.io/badge/rgraph-4.62-red.svg)
+![](https://img.shields.io/badge/rgraph-4.64-red.svg)
 
 Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asset pipeline.
 
