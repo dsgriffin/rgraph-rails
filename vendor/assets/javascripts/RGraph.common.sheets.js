@@ -12,11 +12,11 @@ for(var j=0;j<maxcols;j++){if(typeof grid[i][j]==='undefined'){grid[i][j]='';}
 if(grid[i][j].match(/^[0-9]+$/)){grid[i][j]=parseInt(grid[i][j]);}else if(grid[i][j].match(/^[0-9.]+$/)){grid[i][j]=parseFloat(grid[i][j]);}}}
 obj.data=grid;userCallback(obj);};var scriptNode=document.createElement('script');scriptNode.src=url;document.body.appendChild(scriptNode);};this.row=function(index,start)
 {var opt={},row;start=start||1;if(arguments&&typeof arguments[2]==='object'&&typeof arguments[2].trim==='boolean'){opt.trim=arguments[2].trim;}else{opt.trim=true;}
-row=this.data[index-1].slice(start-1);if(opt.trim){row=RGraph.arrayTrim(row);}
+row=this.data[index-1].slice(start-1);if(opt.trim){row=RGraph.Sheets.arrayRTrim(row);}
 return row;};this.col=function(index,start)
 {var opt={},col=[];start=start||1;if(arguments&&typeof arguments[2]==='object'&&typeof arguments[2].trim==='boolean'){opt.trim=arguments[2].trim;}else{opt.trim=true;}
 for(var i=0;i<this.data.length;++i){col.push(this.data[i][index-1]);}
-if(opt.trim){col=RGraph.arrayTrim(col);}
+if(opt.trim){col=RGraph.Sheets.arrayRTrim(col);}
 col=col.slice(start-1);return col;};this.getIndexOfLetters=function(l)
 {var parts=l.split('');if(parts.length===1){return letters.indexOf(l)+1;}else if(parts.length===2){var idx=((letters.indexOf(parts[0])+1)*26)+(letters.indexOf(parts[1])+1);return idx;}}
 this.get=function(str)
@@ -26,5 +26,7 @@ if(str.match(/^([a-z]{1,2})([0-9]+)$/i)){var letter=RegExp.$1,number=RegExp.$2,c
 if(str.match(/^([a-z]{1,2})([0-9]+):([a-z]{1,2})([0-9]+)$/i)){var letter1=RegExp.$1,number1=RegExp.$2,letter2=RegExp.$3,number2=RegExp.$4
 if(letter1===letter2){var cells=[],index=this.getIndexOfLetters(letter1),col=this.col(index,null,{trim:false});for(var i=(number1-1);i<=(number2-1);++i){cells.push(col[i]);}}else if(number1===number2){var cells=[],row=this.row(number1,null,{trim:false}),index1=this.getIndexOfLetters(letter1),index2=this.getIndexOfLetters(letter2)
 for(var i=(index1-1);i<=(index2-1);++i){cells.push(row[i]);}}
-if(arguments[1]&&arguments[1].trim===false){}else{cells=RGraph.arrayTrim(cells);}
-return cells;}};this.load(url,callback);};})(window,document);
+if(arguments[1]&&arguments[1].trim===false){}else{cells=RGraph.Sheets.arrayRTrim(cells);}
+return cells;}};this.load(url,callback);};RGraph.Sheets.arrayRTrim=function(arr)
+{var out=[],content=false;for(var i=(arr.length-1);i>=0;i--){if(arr[i]||content){out.push(arr[i]);content=true;}}
+arr=out.reverse();return out;};})(window,document);

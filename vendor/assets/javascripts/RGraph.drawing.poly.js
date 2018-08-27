@@ -14,18 +14,16 @@ prop[name]=value;return this;};this.get=this.Get=function(name)
 while(name.match(/([A-Z])/)){name=name.replace(/([A-Z])/,'.'+RegExp.$1.toLowerCase());}
 return prop[name.toLowerCase()];};this.draw=this.Draw=function()
 {RG.fireCustomEvent(this,'onbeforedraw');if(!this.colorsParsed){this.parseColors();this.colorsParsed=true;}
-this.coordsText=[];var obj=this;pa2(co,['b','fu',function(obj){if(prop['chart.shadow']){co.shadowColor=prop['chart.shadow.color'];co.shadowOffsetX=prop['chart.shadow.offsetx'];co.shadowOffsetY=prop['chart.shadow.offsety'];co.shadowBlur=prop['chart.shadow.blur'];}},'fu',function(obj)
-{co.strokeStyle=prop['chart.strokestyle'];co.fillStyle=prop['chart.fillstyle'];obj.drawPoly();},'lw',prop['chart.linewidth'],'f',prop['chart.fillstyle'],'fu',function()
-{RG.noShadow(obj);},'s',prop['chart.strokestyle']]);RG.noShadow(this)
-RG.installEventListeners(this);if(this.firstDraw){this.firstDraw=false;RG.fireCustomEvent(this,'onfirstdraw');this.firstDrawFunc();}
+this.coordsText=[];if(prop['chart.shadow']){co.shadowColor=prop['chart.shadow.color'];co.shadowOffsetX=prop['chart.shadow.offsetx'];co.shadowOffsetY=prop['chart.shadow.offsety'];co.shadowBlur=prop['chart.shadow.blur'];}
+co.strokeStyle=prop['chart.strokestyle'];co.fillStyle=prop['chart.fillstyle'];this.drawPoly();co.lineWidth=prop['chart.linewidth'];RG.noShadow(this);RG.installEventListeners(this);if(this.firstDraw){this.firstDraw=false;RG.fireCustomEvent(this,'onfirstdraw');this.firstDrawFunc();}
 RG.fireCustomEvent(this,'ondraw');return this;};this.exec=function(func)
 {func(this);return this;};this.getObjectByXY=function(e)
 {if(this.getShape(e)){return this;}};this.drawPoly=this.DrawPoly=function()
 {var coords=this.coords;pa2(co,['b','m',coords[0][0],coords[0][1]]);for(var i=1,len=coords.length;i<len;++i){co.lineTo(coords[i][0],coords[i][1]);}
 pa2(co,['lw',prop['chart.linewidth'],'c','f',co.fillStyle,'s',co.strokeStyle]);};this.getShape=function(e)
-{var coords=this.coords,mouseXY=RG.getMouseXY(e),mouseX=mouseXY[0],mouseY=mouseXY[1];co.beginPath();co.strokeStyle='rgba(0,0,0,0)';co.fillStyle='rgba(0,0,0,0)';this.drawPoly();if(co.isPointInPath(mouseX,mouseY)){return{0:this,1:this.coords,2:0,'object':this,'coords':this.coords,'index':0,'tooltip':prop['chart.tooltips']?prop['chart.tooltips'][0]:null};}
+{var coords=this.coords,mouseXY=RG.getMouseXY(e),mouseX=mouseXY[0],mouseY=mouseXY[1];var old_strokestyle=co.strokeStyle,old_fillstyle=co.fillStyle;co.beginPath();co.strokeStyle='rgba(0,0,0,0)';co.fillStyle='rgba(0,0,0,0)';this.drawPoly();co.strokeStyle=old_strokestyle;co.fillStyle=old_fillstyle;if(co.isPointInPath(mouseX,mouseY)){return{0:this,1:this.coords,2:0,'object':this,'coords':this.coords,'index':0,'tooltip':prop['chart.tooltips']?prop['chart.tooltips'][0]:null};}
 return null;};this.highlight=this.Highlight=function(shape)
-{co.fillStyle=prop['chart.fillstyle'];if(prop['chart.tooltips.highlight']){if(typeof prop['chart.highlight.style']==='function'){(prop['chart.highlight.style'])(shape);}else{pa2(co,['b','fu',function(obj){obj.DrawPoly();},'f',prop['chart.highlight.fill'],'s',prop['chart.highlight.stroke']]);}}};this.parseColors=function()
+{co.fillStyle=prop['chart.fillstyle'];if(prop['chart.tooltips.highlight']){if(typeof prop['chart.highlight.style']==='function'){(prop['chart.highlight.style'])(shape);}else{pa2(co,['b','fu',function(obj){obj.drawPoly();},'f',prop['chart.highlight.fill'],'s',prop['chart.highlight.stroke']]);}}};this.parseColors=function()
 {if(this.original_colors.length===0){this.original_colors['chart.fillstyle']=RG.array_clone(prop['chart.fillstyle']);this.original_colors['chart.strokestyle']=RG.array_clone(prop['chart.strokestyle']);this.original_colors['chart.highlight.stroke']=RG.array_clone(prop['chart.highlight.stroke']);this.original_colors['chart.highlight.fill']=RG.array_clone(prop['chart.highlight.fill']);}
 var func=this.parseSingleColorForGradient;prop['chart.fillstyle']=func(prop['chart.fillstyle']);prop['chart.strokestyle']=func(prop['chart.strokestyle']);prop['chart.highlight.stroke']=func(prop['chart.highlight.stroke']);prop['chart.highlight.fill']=func(prop['chart.highlight.fill']);};this.reset=function()
 {};this.parseSingleColorForGradient=function(color)

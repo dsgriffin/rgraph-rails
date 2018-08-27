@@ -2,7 +2,8 @@
 RGraph=window.RGraph||{isRGraph:true,isRGraphSVG:true};RGraph.SVG=RGraph.SVG||{};(function(win,doc,undefined)
 {var RG=RGraph,ua=navigator.userAgent,ma=Math;RG.SVG.tooltips={};RG.SVG.tooltips.style={display:'inline-block',position:'absolute',padding:'6px',fontFamily:'Arial',fontSize:'12pt',fontWeight:'normal',textAlign:'center',left:0,top:0,backgroundColor:'rgb(255,255,239)',color:'black',visibility:'visible',zIndex:3,borderRadius:'5px',boxShadow:'rgba(96,96,96,0.5) 0 0 5px',transition:'left ease-out .25s, top ease-out .25s'};RG.SVG.tooltip=function(opt)
 {var obj=opt.object;RG.SVG.fireCustomEvent(obj,'onbeforetooltip');if(!opt.text||typeof opt.text==='undefined'||RG.SVG.trim(opt.text).length===0){return;}
-var prop=obj.properties;if(typeof prop.tooltipsOverride==='function'){return(prop.tooltipsOverride)(obj,opt);}
+var prop=obj.properties;if(typeof prop.tooltipsOverride==='function'){document.body.addEventListener('mouseup',function(e)
+{obj.removeHighlight();},false);return(prop.tooltipsOverride)(obj,opt);}
 if(!RG.SVG.REG.get('tooltip')){var tooltipObj=document.createElement('DIV');tooltipObj.className=prop.tooltipsCssClass;for(var i in RG.SVG.tooltips.style){if(typeof i==='string'){tooltipObj.style[i]=RG.SVG.tooltips.style[i];}}}else{var tooltipObj=RG.SVG.REG.get('tooltip');tooltipObj.__object__.removeHighlight();tooltipObj.style.width='';}
 if(RG.SVG.REG.get('tooltip-lasty')){tooltipObj.style.left=RG.SVG.REG.get('tooltip-lastx')+'px';tooltipObj.style.top=RG.SVG.REG.get('tooltip-lasty')+'px';}
 tooltipObj.innerHTML=opt.text;tooltipObj.__text__=opt.text;tooltipObj.id='__rgraph_tooltip_'+obj.id+'_'+obj.uid+'_'+opt.index;tooltipObj.__event__=prop.tooltipsEvent||'click';tooltipObj.__object__=obj;if(typeof opt.index==='number'){tooltipObj.__index__=opt.index;}
