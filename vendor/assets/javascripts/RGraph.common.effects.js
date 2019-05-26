@@ -82,9 +82,8 @@ if(i%2==0){jQuery('#'+'rgraph_vscissors_'+i+'_'+obj.id).animate({top:xy[1]+'px',
 setTimeout(function()
 {RG.clear(obj.canvas);for(var i=0;i<10;i++){jQuery('#rgraph_vscissors_'+i+'_'+obj.id).remove();}
 callback(obj);},duration);return this;};RG.Effects.Common.animate=function(map)
-{var obj=this;obj.draw();var totalFrames=(map&&map['frames'])?map['frames']:30;var currentFrame=new Array();var originalValues=new Array();var diffs=new Array();var steps=new Array();var callback=arguments[1]
-function iterator()
-{var id=[obj.id+'_'+obj.type];if(!currentFrame[id]){currentFrame[id]=totalFrames;originalValues[id]={};diffs[id]={};steps[id]={};}
+{var obj=this;obj.draw();var totalFrames=(map&&map['frames'])?map['frames']:30,currentFrame=new Array(),originalValues=new Array(),diffs=new Array(),steps=new Array(),callback=arguments[1];function iterator()
+{var id=[obj.id+'_'+obj.type];RG.cache={};if(!currentFrame[id]){currentFrame[id]=totalFrames;originalValues[id]={};diffs[id]={};steps[id]={};}
 for(var i in map){if(typeof map[i]==='string'||typeof map[i]==='number'){if(currentFrame[id]==totalFrames){originalValues[id][i]=obj.get(i);diffs[id][i]=map[i]-originalValues[id][i];steps[id][i]=diffs[id][i]/totalFrames;}
 obj.set(i,obj.get(i)+steps[id][i]);RG.clear(obj.canvas);obj.draw();}}
 if(--currentFrame[id]>0){RG.Effects.updateCanvas(iterator);}else{if(typeof callback==='function'){callback(obj);}}}

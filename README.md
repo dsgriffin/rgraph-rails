@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/dsgriffin/rgraph-rails.svg?branch=master)](https://travis-ci.org/dsgriffin/rgraph-rails)
 [![Gem Version](https://badge.fury.io/rb/rgraph-rails.svg)](https://badge.fury.io/rb/rgraph-rails)
-![](https://img.shields.io/badge/rgraph-4.67-red.svg)
+![](https://img.shields.io/badge/rgraph-5.00-red.svg)
 
 Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asset pipeline.
 
@@ -11,7 +11,7 @@ Use the [rgraph](http://www.rgraph.net/) chart/graph library with the Rails asse
 Include the gem in your application's Gemfile:
 
 ```ruby
-gem 'rgraph-rails', '~> 4.67'
+gem 'rgraph-rails', '~> 5.00'
 ```
 
 And then execute:
@@ -67,7 +67,7 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 ## Versioning
 
-rgraph itself doesn't use semantic versioning (and therefore neither does this gem; it keeps the same version as it's less confusing) -  you can find out about breaking changes by release on the [Backwards Compatibility section on the official site](http://www.rgraph.net/docs/backwards-compatibility.html).
+rgraph itself doesn't use semantic versioning (and therefore neither does this gem; it keeps the same version as the library so that it's less confusing) - you can find out about breaking changes by release on the [Backwards Compatibility section on the official site](http://www.rgraph.net/docs/backwards-compatibility.html).
 
 ## Issues
 
