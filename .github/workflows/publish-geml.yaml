@@ -17,6 +17,6 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           RUBYGEMS_API_KEY: ${{secrets.RUBYGEMS_API_KEY}}
           RELEASE_COMMAND: |
-            git config --global user.email "automated@example.com" &&
-            git config --global user.name "Automated Release" &&
-            bundle exec rake release
+            git config --global user.email "automated@example.com"
+            git config --global user.name "Automated Release"
+            rake release
