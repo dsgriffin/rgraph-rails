@@ -8,10 +8,12 @@
     // | RGraph is licensed under the Open Source MIT license. That means that it's     |
     // | totally free to use and there are no restrictions on what you can do with it!  |
     // o--------------------------------------------------------------------------------o
-   
+
+    
     //
-    // Having this here means that the RGraph libraries can be included in any order, instead of you having
-    // to include the common core library first.
+    // Having this here means that the RGraph libraries can be
+    // included in any order, instead of you having to include
+    // the common core library first.
     //
 
     // Define the RGraph global variable
@@ -21,42 +23,30 @@
     //
     // The constructor. This function sets up the object.
     //
-    RGraph.Drawing.Marker1 = function (conf)
+    RGraph.Drawing.Line = function (conf)
     {
-        var id                        = conf.id,
-            canvas                    = document.getElementById(id),
-            x                         = conf.x,
-            y                         = conf.y,
-            radius                    = conf.radius,
-            text                      = conf.text;
+        var id                 = conf.id;
+        var coords             = conf.coords;
 
-        // id, x, y, radius, text)
         this.id                = id;
-        this.canvas            = canvas;
-        this.context           = this.canvas.getContext("2d");
+        this.canvas            = document.getElementById(this.id);
+        this.context           = this.canvas.getContext('2d');
         this.colorsParsed      = false;
         this.canvas.__object__ = this;
+        this.coords            = coords;
+        this.coordsText        = [];
         this.original_colors   = [];
         this.firstDraw         = true; // After the first draw this will be false
-
-
-        //
-        // Store the properties
-        //
-        this.centerx = x;
-        this.centery = y;
-        this.radius  = radius;
-        this.text    = text;
-
 
         //
         // This defines the type of this shape
         //
-        this.type = 'drawing.marker1';
+        this.type = 'drawing.line';
 
 
         //
-        // This facilitates easy object identification, and should always be true
+        // This facilitates easy object identification, and should
+        // always be true
         //
         this.isRGraph = true;
         this.isrgraph = true;
@@ -64,7 +54,8 @@
 
 
         //
-        // This adds a uid to the object that you can use for identification purposes
+        // This adds a uid to the object that you can use for
+        // identification purposes
         //
         this.uid = RGraph.createUID();
 
@@ -75,41 +66,26 @@
         this.canvas.uid = this.canvas.uid ? this.canvas.uid : RGraph.createUID();
 
 
+
+
         //
         // Some example background properties
         //
         this.properties =
         {
-            colorsStroke:       'black',
-            colorsFill:         'white',
-            
-            linewidth:          2,
-            
-            textColor:          'black',
-            textSize:           12,
-            textFont:           'Arial, Verdana, sans-serif',
-            textBold:           false,
-            textItalic:         false,
-            textAccessible:     false,
-            textAccessibleOverflow:      'visible',
-            textAccessiblePointerevents: false,
-            text:                        null,
-            
-            shadow:             true,
-            shadowColor:        '#aaa',
-            shadowOffsetx:      0,
-            shadowOffsety:      0,
-            shadowBlur:         15,
-            
-            highlightStroke:    'rgba(0,0,0,0)',
-            highlightFill:      'rgba(255,0,0,0.7)',
-            
+            linewidth:                  1,
+            linecap:                    'round',
+            linejoin:                   'round',
+
+            colorsStroke:               'black',
+
             tooltips:                   null,
-            tooltipsHighlight:          true,
-            tooltipsCssClass:           'RGraph_tooltip',
-            tooltipsCss:                null,
+            tooltipsOverride:           null,
             tooltipsEffect:             'slide',
+            tooltipsCssClass:           'RGraph_tooltip',
+            tooltipsCss:                {},
             tooltipsEvent:              'onclick',
+            tooltipsHighlight:          true,
             tooltipsFormattedPoint:     '.',
             tooltipsFormattedThousand:  ',',
             tooltipsFormattedDecimals:  0,
@@ -121,33 +97,34 @@
             tooltipsPointerOffsetx:     0,
             tooltipsPointerOffsety:     0,
             tooltipsPositionStatic:     true,
-            
-            align:              'center',
-            
-            clearto:            'rgba(0,0,0,0)'
+
+            highlightStyle:         null,
+            highlightStroke:        'rgba(255,255,255,0.7)',
+
+            shadow:                  false,
+            shadowColor:             'rgba(0,0,0,0.2)',
+            shadowOffsetx:           3,
+            shadowOffsety:           3,
+            shadowBlur:              5,
+
+
+            text:                    null,
+
+            clearto:                 'rgba(0,0,0,0)'
         }
 
         //
         // A simple check that the browser has canvas support
         //
         if (!this.canvas) {
-            alert('[DRAWING.MARKER1] No canvas support');
+            alert('[DRAWING.LINE] No canvas support');
             return;
         }
-
-
+        
         //
         // Create the dollar object so that functions can be added to them
         //
         this.$0 = {};
-
-
-        //
-        // Arrays that store the coordinates
-        //
-        this.coords = [];
-        this.coordsText = [];
-
 
 
 
@@ -155,7 +132,9 @@
         // Easy access to  properties and the path function
         var properties = this.properties;
         this.path      = RGraph.pathObjectFunction;
-
+        
+        
+        
         //
         // "Decorate" the object with the generic effects if the effects library has been included
         //
@@ -163,11 +142,18 @@
             RGraph.Effects.decorate(this);
         }
 
+
+
+
+
+
+
+
         //
-        // A setter method for setting graph properties. It can be used like this: obj.set('colorsStroke', '#666');
+        // A setter method for setting properties.
         // 
-        // @param name  string The name of the property to set
-        // @param value mixed  The value of the property
+        // @param name  string The name of the property to set OR it can be a map
+        //                     of name/value settings like what you set in the constructor
         //
         this.set = function (name)
         {
@@ -215,7 +201,7 @@
 
 
         //
-        // Draws the circle
+        // Draws the shape
         //
         this.draw = function ()
         {
@@ -225,8 +211,8 @@
             RGraph.fireCustomEvent(this, 'onbeforedraw');
 
 
-            // Translate half a pixel for antialiasing purposes - but only if it hasn't been
-            // done already
+            // Translate half a pixel for antialiasing purposes - but
+            // only if it hasn't been done already
             //
             // MUST be the first thing done!
             //
@@ -235,28 +221,10 @@
             
                 this.canvas.__rgraph_aa_translated__ = true;
             }
-
-
-            var r = this.radius;
-    
-            if (properties.align == 'left') {
-    
-                this.markerCenterx = this.centerx - r - r - 3;
-                this.markerCentery = this.centery - r - r - 3;
-            
-            } else if (properties.align == 'right') {
-                
-                this.markerCenterx = this.centerx + r + r + 3;
-                this.markerCentery = this.centery - r - r - 3;
-    
-            } else {
-    
-                this.markerCenterx = this.centerx;
-                this.markerCentery = this.centery - r - r - 3;
-            }
     
             //
-            // Parse the colors. This allows for simple gradient syntax
+            // Parse the colors. This allows for simple gradient
+            // syntax
             //
             if (!this.colorsParsed) {
     
@@ -265,9 +233,11 @@
                 // Don't want to do this again
                 this.colorsParsed = true;
             }
-            
-            
-            
+    
+    
+
+
+
             //
             // Stop this growing uncontrollably
             //
@@ -276,65 +246,23 @@
 
 
 
+    
             //
-            // DRAW THE MARKER HERE
+            // DRAW THE LINE HERE
             //
-            this.path(
-                'b lw %',
-                properties.linewidth
-            );
-
             if (properties.shadow) {
-                RGraph.setShadow(
-                    this,
-                    properties.shadowColor,
-                    properties.shadowOffsetx,
-                    properties.shadowOffsety,
-                    properties.shadowBlur
-                );
+                RGraph.setShadow({
+                    object: this,
+                    prefix: 'shadow'
+                });
             }
-            this.drawMarker();
+
+            this.context.strokeStyle = properties.colorsStroke;
+
+            this.drawLine();
             
-            this.path(
-                'c s % f %',
-                properties.colorsStroke,properties.colorsFill
-            );
-
-
-
-
-            // Turn the shadow off
+            this.context.lineWidth = properties.linewidth;
             RGraph.noShadow(this);
-
-
-
-            // Get the text configuration
-            var textConf = RGraph.getTextConf({
-                object: this,
-                prefix: 'text'
-            });
-
-            // Now draw the text on the marker
-            this.context.fillStyle = properties.textColor;
-            
-            // Draw the text on the marker
-            RGraph.text({
-            
-                object: this,
-
-                font:   textConf.font,
-                size:   textConf.size,
-                color:  textConf.color,
-                bold:   textConf.bold,
-                italic: textConf.italic,
-
-                x:      this.coords[0][0] - 1,
-                y:      this.coords[0][1] - 1,
-                text:   this.text,
-                valign: 'center',
-                halign: 'center',
-                tag:    'labels'
-            });
 
 
 
@@ -347,6 +275,8 @@
 
 
 
+    
+    
     
             //
             // This installs the event listeners
@@ -370,7 +300,7 @@
             // Fire the draw event
             //
             RGraph.fireCustomEvent(this, 'ondraw');
-            
+
             return this;
         };
 
@@ -397,10 +327,6 @@
 
 
 
-
-
-
-
         //
         // The getObjectByXY() worker method
         //
@@ -419,26 +345,92 @@
 
 
         //
-        // Not used by the class during creating the shape, but is used by event handlers
-        // to get the coordinates (if any) of the selected bar
+        // Draws the path for the line - does not stroke or fill it
+        //
+        this.pathLine = function (coords, initial = 'm')
+        {
+            this.path(
+                '% % %',
+                initial,
+                coords[0][0],
+                coords[0][1]
+            );
+
+            // Draw lines to subsequent coords
+            for (var i=1,len=coords.length; i<len; ++i) {
+                this.context.lineTo(coords[i][0],coords[i][1]);
+            }
+        };
+
+
+
+
+
+
+
+
+        //
+        // Draw the Poly but doesn't stroke or fill - that's left to other functions
+        //
+        this.drawLine = function (opt)
+        {
+            // lineWidth given
+            if (opt && RGraph.isNumber(opt.linewidth)) {
+                var linewidth = opt.linewidth;
+            } else {
+                var linewidth = properties.linewidth;
+            }
+
+            var coords = this.coords;
+            
+            this.path('b');
+            this.pathLine(coords);
+
+            // Stroke the line
+            this.path(
+                'lw % lj % lc % s %',
+                linewidth,
+                properties.linejoin,
+                properties.linecap,
+                this.context.strokeStyle
+            );
+        };
+
+
+
+
+        //
+        // Not used by the class during creating the graph, but 
+        // is used by event handlers to get the coordinates (if
+        // any) of the line
         // 
         // @param object e The event object
-        // @param object   OPTIONAL You can pass in the bar object instead of the
-        //                          function using "this"
         //
         this.getShape = function (e)
         {
-            var mouseXY = RGraph.getMouseXY(e),
+            var coords  = this.coords,
+                mouseXY = RGraph.getMouseXY(e),
                 mouseX  = mouseXY[0],
                 mouseY  = mouseXY[1];
     
-            //
-            // Path the marker but DON'T STROKE OR FILL it
-            //
+            // Should redraw the line but not stroke or fill it and
+            // then use isPointInPath() to test it DON'T USE PATH
+            // OBJECT HERE
+            
+            // Need to save these so that they can be reset
+            var old_strokestyle = this.context.strokeStyle;
+
             this.context.beginPath();
-            this.drawMarker();
+            this.context.strokeStyle = 'transparent';
+            this.drawLine({
+                linewidth: properties.linewidth + 5
+            });
+            
+            // Reset the colors
+            this.context.strokeStyle = old_strokestyle;
+
     
-            if (this.context.isPointInPath(mouseXY[0], mouseXY[1])) {
+            if (this.context.isPointInStroke(mouseX, mouseY)) {
 
                 if (RGraph.parseTooltipText && properties.tooltips) {
                     var tooltip = RGraph.parseTooltipText(properties.tooltips, 0);
@@ -446,9 +438,7 @@
 
                 return {
                     object: this,
-                         x: this.coords[0][0],
-                         y: this.coords[0][1],
-                    radius: this.coords[0][2],
+                    coords: this.coords,
                    dataset: 0,
                      index: 0,
            sequentialIndex: 0,
@@ -467,86 +457,28 @@
 
 
         //
-        // Each object type has its own Highlight() function which highlights the appropriate shape
+        // Each object type has its own Highlight() function which
+        // highlights the appropriate shape
         // 
         // @param object shape The shape to highlight
         //
         this.highlight = function (shape)
         {
+            // Add the new highlight
             if (properties.tooltipsHighlight) {
                 if (typeof properties.highlightStyle === 'function') {
                     (properties.highlightStyle)(shape);
                 } else {
-                    
-                    this.context.beginPath(); 
-                    this.context.strokeStyle = properties.highlightStroke;
-                    this.context.fillStyle   = properties.highlightFill;
-                    this.drawMarker();
-                    this.context.closePath();
-                    this.context.stroke();
-                    this.context.fill();
+
+                    this.context.beginPath();
+                    this.pathLine(this.coords);
+                    this.path(
+                        's %',
+                        properties.highlightStroke
+                    );
                 }
             }
         };
-
-
-
-
-
-
-
-
-        //
-        // This function is used to encapsulate the actual drawing of the marker. It
-        // intentional does not start a path or set colors.
-        //
-        this.drawMarker = function ()
-        {
-            var r = this.radius;
-            
-            if (properties.align === 'left') {
-    
-                var x = this.markerCenterx,
-                    y = this.markerCentery;
-        
-                this.path(
-                    'a % % % % % false',
-                    x,y,r,RGraph.HALFPI,RGraph.TWOPI
-                );
-                
-                this.path('qc % % % %', x + r,y + r,x + r + r,y + r + r);
-                this.path('qc % % % %', x + r,y + r,x,y + r);
-
-            } else if (properties.align === 'right') {
-    
-                var x = this.markerCenterx,
-                    y = this.markerCentery;
-
-                this.path('a % % % % % true',x,y,r,RGraph.HALFPI,RGraph.PI);
-    
-               // special case for MSIE 7/8
-                this.path('qc % % % %', x - r,y + r,x - r - r,y + r + r);
-                this.path('qc % % % %', x - r, y + r, x, y + r);
-    
-            // Default is center
-            } else {
-    
-                var x = this.markerCenterx,
-                    y = this.markerCentery;
-    
-                this.path('a % % % % % true', x, y, r, RGraph.HALFPI / 2, RGraph.PI - (RGraph.HALFPI / 2));
-                
-                // special case for MSIE 7/8
-                this.path('qc % % % %', x,y + r + (r / 4),x,y + r + r - 2);
-                this.path('qc % % % %', x,y + r + (r / 4),x + (Math.cos(RGraph.HALFPI / 2) * r),y + (Math.sin(RGraph.HALFPI / 2) * r));
-            }
-
-            this.coords[0] = [x, y, r];
-        };
-
-
-
-
 
 
 
@@ -556,23 +488,19 @@
         //
         this.parseColors = function ()
         {
+
             // Save the original colors so that they can be restored when the canvas is reset
             if (this.original_colors.length === 0) {
-                this.original_colors.colorsFill      = RGraph.arrayClone(properties.colorsFill);
                 this.original_colors.colorsStroke    = RGraph.arrayClone(properties.colorsStroke);
-                this.original_colors.highlightFill   = RGraph.arrayClone(properties.highlightFill);
                 this.original_colors.highlightStroke = RGraph.arrayClone(properties.highlightStroke);
-                this.original_colors.textColor       = RGraph.arrayClone(properties.textColor);
             }
 
+    
             //
             // Parse various properties for colors
             //
-            properties.colorsFill      = this.parseSingleColorForGradient(properties.colorsFill);
             properties.colorsStroke    = this.parseSingleColorForGradient(properties.colorsStroke);
             properties.highlightStroke = this.parseSingleColorForGradient(properties.highlightStroke);
-            properties.highlightFill   = this.parseSingleColorForGradient(properties.highlightFill);
-            properties.textColor       = this.parseSingleColorForGradient(properties.textColor);
         };
 
 
@@ -602,11 +530,11 @@
         //
         this.parseSingleColorForGradient = function (color)
         {
-            if (!color || typeof color != 'string') {
+            if (!color) {
                 return color;
             }
     
-            if (color.match(/^gradient\((.*)\)$/i)) {
+            if (typeof color === 'string' && color.match(/^gradient\((.*)\)$/i)) {
 
                 // Allow for JSON gradients
                 if (color.match(/^gradient\(({.*})\)$/i)) {
@@ -615,12 +543,12 @@
 
                 // Create the gradient
                 var parts = RegExp.$1.split(':'),
-                    grad = this.context.createRadialGradient(this.markerCenterx, this.markerCentery, 0, this.markerCenterx, this.markerCentery, this.radius),
-                    diff = 1 / (parts.length - 1);
+                    grad  = this.context.createLinearGradient(0,0,this.canvas.width,0),
+                    diff  = 1 / (parts.length - 1);
     
                 grad.addColorStop(0, RGraph.trim(parts[0]));
     
-                for (var j=1; j<parts.length; ++j) {
+                for (var j=1,len=parts.length; j<len; ++j) {
                     grad.addColorStop(j * diff, RGraph.trim(parts[j]));
                 }
             }
@@ -707,30 +635,56 @@
                 e          = args.event,
                 tooltip    = args.tooltip,
                 index      = args.index,
-                canvasXY   = RGraph.getCanvasXY(obj.canvas),
-                x          = this.centerx;
-                
-            if (properties.align == 'left') {
-                x = x - this.radius - this.radius;
-            } else if (properties.align == 'right') {
-                x = x + this.radius + this.radius;
-            }
+                canvasXY   = RGraph.getCanvasXY(obj.canvas);
+/*
+            // Calculate the minimum X coordinate
+            var p1 = coords[0];
+            var p2 = coords[1];
+            
+            var hypLength = RGraph.getHypLength({
+                x1: p1[0],
+                y1: p1[1],
+                x2: p2[0],
+                y2: p2[1]
+            });
+            
+            var angle = RGraph.getAngleByXY({
+                cx: p1[0],
+                cy: p1[1],
+                x: p2[0],
+                y: p2[1]
+            });
+            
+            // cx,cy,angle,radius
+            var point = RGraph.getRadiusEndPoint({
+                cx:     p1[0],
+                cy:     p1[1],
+                radius: hypLength / 2,
+                angle:  angle
+            });
+
+            var x = point[0];
+            var y = point[1];
+*/
+
+            var x = this.coords[0][0];
+            var y = this.coords[0][1];
 
             // Position the tooltip in the X direction
             args.tooltip.style.left = (
                 canvasXY[0]                            // The X coordinate of the canvas
-                + x                                    // The X coordinate of the image
                 - (tooltip.offsetWidth / 2)            // Subtract half of the tooltip width
                 + obj.properties.tooltipsOffsetx       // Add any user defined offset
+                + x
             ) + 'px';
 
             args.tooltip.style.top  = (
                   canvasXY[1]                            // The Y coordinate of the canvas
                 - tooltip.offsetHeight                   // The height of the tooltip
                 + obj.properties.tooltipsOffsety         // Add any user defined offset
-                + this.centery                           // Add the Y coordinate
-                - this.radius - this.radius - this.radius
-                - 15                                     // An arbitrary amount
+                + y
+                 - properties.linewidth
+                  - 5
             ) + 'px';
         };
 
@@ -742,13 +696,10 @@
 
 
         //
-        // Objects are now always registered so that the chart is redrawn if need be.
+        // Objects are now always registered so that the chart
+        // is redrawn if need be.
         //
         RGraph.register(this);
-
-
-
-
 
 
 
