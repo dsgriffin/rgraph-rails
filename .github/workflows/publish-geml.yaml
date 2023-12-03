@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
       - name: Release Gem
@@ -18,6 +17,6 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           RUBYGEMS_API_KEY: ${{secrets.RUBYGEMS_API_KEY}}
           RELEASE_COMMAND: |
-            git config --global user.email "automated@example.com"
-            git config --global user.name "Automated Release"
+            git config --global user.email "automated@example.com" &&
+            git config --global user.name "Automated Release" &&
             bundle exec rake release
