@@ -74,7 +74,7 @@ If your query concerns the library itself, see the [official support forum](http
 
 ## Contributing
 
-Bug reports and pull requests are welcome. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](https://github.com/dsgriffin/rgraph-rails/blob/master/CODE_OF_CONDUCT.md) code of conduct.
+Bug reports and pull requests are welcome. Contributors are expected to adhere to the [Contributor Covenant](https://github.com/dsgriffin/rgraph-rails/blob/master/CODE_OF_CONDUCT.md) code of conduct.
 
 ## License
 
