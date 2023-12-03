@@ -19,4 +19,3 @@ jobs:
           RELEASE_COMMAND: |
             git config --global user.email "automated@example.com"
             git config --global user.name "Automated Release"
-            rake release
