@@ -1,4 +1,4 @@
-![Logo](http://dsgriffin.github.io/images/logos/rgraph-rails.png)
+# rgraph-rails 📊
 
 [![Gem Version](https://badge.fury.io/rb/rgraph-rails.svg)](https://badge.fury.io/rb/rgraph-rails)
 ![](https://img.shields.io/badge/rgraph-6.14-red.svg)
@@ -68,13 +68,9 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 rgraph itself doesn't use semantic versioning (and therefore neither does this gem; it keeps the same version as the library so that it's less confusing) - you can find out about breaking changes by release on the [Backwards Compatibility section on the official site](http://www.rgraph.net/docs/backwards-compatibility.html).
 
-## Issues
-
-If your query concerns the library itself, see the [official support forum](http://www.rgraph.net/support). If it is about this gem in particular, [raise an issue](https://github.com/dsgriffin/rgraph-rails/issues).
-
 ## Contributing
 
-Bug reports and pull requests are welcome. Contributors are expected to adhere to the [Contributor Covenant](https://github.com/dsgriffin/rgraph-rails/blob/master/CODE_OF_CONDUCT.md) code of conduct.
+If you've found a bug or have an idea, feel free to open an Issue. If you've got a fix or feature ready, open a PR. Thanks!
 
 ## License
 
